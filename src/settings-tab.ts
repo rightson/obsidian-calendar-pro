@@ -65,13 +65,13 @@ export class CalendarNoteSettingTab extends PluginSettingTab {
       ['obsidian', 'Follow Obsidian'], ['collapsed', 'Collapsed'], ['expanded', 'Expanded'],
     ], 'Initial Properties state when an Event Note opens. You can toggle it in the note.');
     const daily = resolveDailySettings(this.app, settings);
-    root.createEl('p', { text: `Daily Notes provider: ${daily.provider === 'calendar-note' ? 'Calendar Note' : daily.provider}`, cls: 'setting-item-description' });
+    root.createEl('p', { text: `Daily Notes provider: ${daily.provider === 'calendar-note' ? 'Calendar Pro' : daily.provider}`, cls: 'setting-item-description' });
     this.text(root, 'Daily fallback folder', 'Used when core Daily Notes is disabled.', 'dailyFolder');
     this.text(root, 'Daily fallback format', 'Moment date format; no event placeholders.', 'dailyFormat');
     this.text(root, 'Daily fallback template', 'Vault-relative Markdown template path, optional.', 'dailyTemplate');
     this.sample(root, current => dailyNotePath('2026-10-23', this.app, current));
     const weekly = resolveWeeklySettings(this.app, settings);
-    root.createEl('p', { text: `Weekly Notes provider: ${weekly.provider === 'calendar-note' ? 'Calendar Note' : weekly.provider}`, cls: 'setting-item-description' });
+    root.createEl('p', { text: `Weekly Notes provider: ${weekly.provider === 'calendar-note' ? 'Calendar Pro' : weekly.provider}`, cls: 'setting-item-description' });
     this.text(root, 'Weekly fallback folder', 'Used when Calendar and Periodic Notes have no active weekly settings.', 'weeklyFolder');
     this.text(root, 'Weekly fallback format', 'Moment locale week tokens: gggg and ww. ISO: GGGG and WW.', 'weeklyFormat');
     this.text(root, 'Weekly fallback template', 'Vault-relative Markdown template path, optional.', 'weeklyTemplate');

@@ -1,6 +1,6 @@
 {
-  "name": "calendar-note",
-  "version": "0.1.4",
+  "name": "calendar-pro",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "engines": { "node": ">=22" },

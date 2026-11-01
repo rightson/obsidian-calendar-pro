@@ -3,7 +3,7 @@ import test from 'node:test';
 import type { Workspace, WorkspaceLeaf } from 'obsidian';
 import { calendarOpenModeForClick, ensureSidebarView, FILE_EXPLORER_VIEW_TYPE, leafBelowFileExplorer, noteSplitLeaf, oppositeTabLeaf, openCalendarLeaf, sideTabLeaf } from '../src/calendar-open';
 
-const viewType = 'calendar-note-view';
+const viewType = 'calendar-pro-view';
 
 test('only Ctrl or Cmd changes a ribbon click to a right split', () => {
   assert.equal(calendarOpenModeForClick({ ctrlKey: false, metaKey: false }), 'tab');

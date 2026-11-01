@@ -1,4 +1,4 @@
-# Releasing Calendar-Note
+# Releasing Calendar Pro
 
 This checklist covers a public plugin release. It does not submit the plugin to the Community directory; initial directory submission is a separate step after the release is ready.
 
@@ -15,7 +15,7 @@ This checklist covers a public plugin release. It does not submit the plugin to 
    npm run package
    ```
 
-4. The package build checks that every runtime dependency has a license file and writes the notices into `main.js` and `THIRD_PARTY_LICENSES.txt`. Inspect the generated archive and verify it contains `calendar-note/main.js`, `calendar-note/manifest.json`, `calendar-note/styles.css`, `calendar-note/LICENSE`, and `calendar-note/THIRD_PARTY_LICENSES.txt`.
+4. The package build checks that every runtime dependency has a license file and writes the notices into `main.js` and `THIRD_PARTY_LICENSES.txt`. Inspect the generated archive and verify it contains `calendar-pro/main.js`, `calendar-pro/manifest.json`, `calendar-pro/styles.css`, `calendar-pro/LICENSE`, and `calendar-pro/THIRD_PARTY_LICENSES.txt`.
 5. Compare `manifest.json`, `package.json`, and `versions.json`: the plugin versions must match, and the `versions.json` entry for that version must equal `manifest.json`'s `minAppVersion`. For 0.1.0, these values are `0.1.0` and `1.14.5`.
 6. Verify the release build against the documented native QA scope in [development and QA](DEVELOPMENT.md). Report only checks actually performed; automated tests do not replace native Obsidian checks.
 

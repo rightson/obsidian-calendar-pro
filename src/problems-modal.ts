@@ -232,7 +232,7 @@ export class EventNoteProblemsModal extends Modal {
       }
       const badges: [string, string][] = [];
       if (note.path === recommended.path) badges.push(['Recommended', recommended.reason]);
-      if (note.linked) badges.push(['Linked by calendar', 'Calendar-Note links the event to this note.']);
+      if (note.linked) badges.push(['Linked by calendar', 'Calendar Pro links the event to this note.']);
       if (note.listed) badges.push(['In Daily Note', 'The event’s Daily Note entry links to this note.']);
       this.renderNote(column, note, badges, isKept ? undefined : kept.content);
       if (!isKept) {
@@ -279,7 +279,7 @@ export class EventNoteProblemsModal extends Modal {
       const reason = problem.message.startsWith(`${note.path}: `) ? problem.message.slice(note.path.length + 2) : problem.message;
       column.createDiv({ cls: 'cn-problem-reason', text: reason });
     }
-    const summary = this.renderNote(column, note, note.linked ? [['Linked by calendar', 'Calendar-Note links an event to this note.']] : []);
+    const summary = this.renderNote(column, note, note.linked ? [['Linked by calendar', 'Calendar Pro links an event to this note.']] : []);
     const seen = this.seen([note]);
     const actions = card.createDiv({ cls: 'cn-history-actions' });
     const button = (label: string, run: () => Promise<void>, cta = false) => {

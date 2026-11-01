@@ -7,11 +7,11 @@ import { bundleOptions } from './build-options.mjs';
 
 // Rebuilds main.js into a Vault's plugin folder on every source change, and
 // copies manifest.json and styles.css when they change. With the Hot Reload
-// community plugin installed, Obsidian reloads Calendar-Note after each write.
+// community plugin installed, Obsidian reloads Calendar Pro after each write.
 const root = resolve(import.meta.dirname, '..');
-const given = process.argv[2] ?? process.env.CALENDAR_NOTE_VAULT;
+const given = process.argv[2] ?? process.env.CALENDAR_PRO_VAULT;
 if (!given) {
-  throw new Error('Usage: npm run dev -- /absolute/path/to/Vault (or set CALENDAR_NOTE_VAULT)');
+  throw new Error('Usage: npm run dev -- /absolute/path/to/Vault (or set CALENDAR_PRO_VAULT)');
 }
 const expanded = given.replace(/^~(?=$|\/)/, homedir());
 if (!isAbsolute(expanded)) throw new Error(`The Vault path must be absolute: ${given}`);
@@ -21,7 +21,7 @@ const isDirectory = async path => (await stat(path).catch(() => null))?.isDirect
 if (!await isDirectory(join(vault, '.obsidian'))) {
   throw new Error(`Not an Obsidian Vault (no .obsidian folder): ${vault}`);
 }
-const target = join(vault, '.obsidian', 'plugins', 'calendar-note');
+const target = join(vault, '.obsidian', 'plugins', 'calendar-pro');
 await mkdir(target, { recursive: true });
 
 const assets = ['manifest.json', 'styles.css'];
@@ -60,7 +60,7 @@ const context = await esbuild.context({
 });
 await context.watch();
 console.log(`Watching src/ → ${target}`);
-console.log('Install the Hot Reload community plugin to reload Calendar-Note after each build; otherwise toggle the plugin off and on. Press Ctrl+C to stop.');
+console.log('Install the Hot Reload community plugin to reload Calendar Pro after each build; otherwise toggle the plugin off and on. Press Ctrl+C to stop.');
 
 const stop = async () => { await context.dispose(); process.exit(0); };
 process.on('SIGINT', stop);

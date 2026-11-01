@@ -1,7 +1,7 @@
 {
-  "id": "calendar-note",
-  "name": "Calendar Note",
-  "version": "0.1.4",
+  "id": "calendar-pro",
+  "name": "Calendar Pro",
+  "version": "0.2.0",
   "minAppVersion": "1.14.5",
   "description": "Plan events in a calendar and connect them to Event, Daily, and Weekly Notes.",
   "author": "rightson",

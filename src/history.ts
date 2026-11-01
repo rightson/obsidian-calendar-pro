@@ -87,7 +87,7 @@ export type SourceErrorKind = "url" | "fetch" | "http" | "empty" | "html" | "non
 const suffix = " Cached events remain available.";
 const parserMessages: Record<ICalErrorCode, string> = {
   "invalid-feed": "The calendar response is not a valid iCalendar feed.",
-  "invalid-syntax": "Calendar Note could not parse this iCalendar response.",
+  "invalid-syntax": "Calendar Pro could not parse this iCalendar response.",
   "invalid-range": "The calendar view has an invalid date range.",
   "feed-too-large": "The calendar feed exceeds the supported size.",
   "invalid-time-zone": "The calendar uses an unknown or invalid time zone.",

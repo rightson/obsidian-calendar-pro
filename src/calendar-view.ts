@@ -19,7 +19,7 @@ import { sidebarWidthForContainer, resizeSidebarWithKeyboard, togglePanel, type 
 import { subscriptionFailureMessage } from './subscription-settings';
 import { holidayDays, showsEvent, type HolidayDay } from './holidays';
 
-export const CALENDAR_VIEW_TYPE = 'calendar-note-calendar';
+export const CALENDAR_VIEW_TYPE = 'calendar-pro-calendar';
 export const CALENDAR_VIEWS = [
   ['timeGridWeek', 'Week'], ['timeGridDay', 'Day'], ['dayGridMonth', 'Month'],
   ['multiMonthYear', 'Year'], ['customDays', 'Custom days'], ['listWeek', 'List'],
@@ -65,13 +65,13 @@ export class CalendarNoteView extends ItemView {
     this.actions = new EventActions(plugin, () => this.leaf);
   }
   getViewType(): string { return CALENDAR_VIEW_TYPE; }
-  getDisplayText(): string { return 'Calendar Note'; }
+  getDisplayText(): string { return 'Calendar Pro'; }
   getIcon(): string { return 'calendar-days'; }
 
   async onOpen(): Promise<void> {
     const root = this.containerEl.children[1] as HTMLElement;
     root.empty();
-    root.addClass('calendar-note-view');
+    root.addClass('calendar-pro-view');
     const shell = root.createDiv({ cls: 'cn-shell' });
     this.shellEl = shell;
     this.sidebarRestore = shell.createEl('button', { cls: 'cn-sidebar-restore', attr: {
@@ -201,7 +201,7 @@ export class CalendarNoteView extends ItemView {
           const start = isoDay(info.view.currentStart, this.settings.timeZone);
           const week = weekInfo(start, resolveWeekRules(this.app, this.settings), this.settings.timeZone);
           const show = info.view.type === 'timeGridWeek' || info.view.type === 'customDays';
-          this.viewWeekEl.style.display = show ? '' : 'none';
+          this.viewWeekEl.toggleClass('cn-hidden', !show);
           this.viewWeekEl.setText(`Week ${week.number}`);
           const label = `${week.label}, ${week.start} through ${week.end}. Open Weekly Note.`;
           this.viewWeekEl.setAttribute('aria-label', label);
@@ -309,7 +309,7 @@ export class CalendarNoteView extends ItemView {
     this.shellEl.toggleClass('is-sidebar-collapsed', collapsed);
     this.shellEl.toggleClass('is-main-collapsed', mainCollapsed);
     this.shellEl.toggleClass('is-sidebar-overlay', overlay);
-    this.sidebarEl.style.width = mainCollapsed ? '' : `${overlay ? Math.min(260, Math.max(0, this.shellEl.clientWidth - 16)) : width}px`;
+    this.sidebarEl.setCssProps({ '--cn-sidebar-width': mainCollapsed ? 'auto' : `${overlay ? Math.min(260, Math.max(0, this.shellEl.clientWidth - 16)) : width}px` });
     const placement = miniDateClick(this.settings.miniDateClickAction, mainCollapsed);
     const dates = placement === 'split' ? 'Dates open Daily Notes beside the calendar.'
       : placement === 'tab' ? 'Dates open Daily Notes in a new tab.' : 'Dates navigate the calendar.';

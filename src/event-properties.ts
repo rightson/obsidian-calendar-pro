@@ -22,10 +22,10 @@ export class EventPropertiesController {
     const refresh = () => this.refresh();
     plugin.registerEvent(this.app.workspace.on('file-open', file => {
       if (!file) return;
-      const activeView = this.app.workspace.activeLeaf?.view;
+      const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
       // A file can be reopened in the same view before a delayed scan ever
       // sees the intervening note. Every file open starts a new default.
-      if (activeView instanceof MarkdownView) {
+      if (activeView) {
         this.restoreView(activeView);
         this.applied.opened(activeView);
         this.manualToggle.delete(activeView);

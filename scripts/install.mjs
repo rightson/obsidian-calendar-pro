@@ -13,7 +13,7 @@ if (vault === root || !basename(vault).toLowerCase().includes('test')) {
 const vaultInfo = await stat(vault);
 if (!vaultInfo.isDirectory()) throw new Error('The test Vault path must be a directory.');
 const manifest = JSON.parse(await readFile(join(root, 'manifest.json'), 'utf8'));
-if (manifest.id !== 'calendar-note') throw new Error('Unexpected plugin ID in manifest.');
+if (manifest.id !== 'calendar-pro') throw new Error('Unexpected plugin ID in manifest.');
 await stat(join(root, 'main.js'));
 const target = join(vault, '.obsidian', 'plugins', manifest.id);
 await mkdir(target, { recursive: true });

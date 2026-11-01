@@ -52,7 +52,7 @@ export default class CalendarNotePlugin extends Plugin {
     try { await this.store.recover(); }
     catch {
       this.store.recoveryConflict ??= new RecoveryConflict(['transaction journal']);
-      new Notice('Calendar Note recovery needs attention. Open the calendar and choose Retry recovery.');
+      new Notice('Calendar Pro recovery needs attention. Open the calendar and choose Retry recovery.');
     }
     this.notes = new EventNoteService(this.app, this.store, () => this.store.state.settings);
     this.eventProperties = new EventPropertiesController(
@@ -70,9 +70,9 @@ export default class CalendarNotePlugin extends Plugin {
     this.registerView(CALENDAR_VIEW_TYPE, leaf => new CalendarNoteView(leaf, this));
     this.registerView(MONTHS_VIEW_TYPE, leaf => new MonthsView(leaf, this));
     this.registerView(AGENDA_VIEW_TYPE, leaf => new AgendaView(leaf, this));
-    this.registerHoverLinkSource(AGENDA_HOVER_SOURCE, { display: 'Calendar Note events sidebar', defaultMod: false });
-    this.addRibbonIcon('calendar-days', 'Open Calendar Note', evt => void this.openCalendar(calendarOpenModeForClick(evt)));
-    this.addRibbonIcon('calendar-clock', 'Open Calendar Note events sidebar', () => void this.openAgenda());
+    this.registerHoverLinkSource(AGENDA_HOVER_SOURCE, { display: 'Calendar Pro events sidebar', defaultMod: false });
+    this.addRibbonIcon('calendar-days', 'Open Calendar Pro', evt => void this.openCalendar(calendarOpenModeForClick(evt)));
+    this.addRibbonIcon('calendar-clock', 'Open Calendar Pro events sidebar', () => void this.openAgenda());
     this.addCommand({ id: 'open-calendar', name: 'Open calendar in new tab', callback: () => void this.openCalendar('tab') });
     this.addCommand({ id: 'open-calendar-right', name: 'Open calendar in right split', callback: () => void this.openCalendar('right-split') });
     this.addCommand({ id: 'open-months', name: 'Open month calendar in sidebar', callback: () => void this.openMonths() });
@@ -286,7 +286,7 @@ export default class CalendarNotePlugin extends Plugin {
   private problemNotice(): void {
     const count = this.notes.problems.length;
     const notice = new Notice(createFragment(fragment => {
-      fragment.appendText(`Calendar Note found ${count} Event Note ${count === 1 ? 'problem' : 'problems'}. `);
+      fragment.appendText(`Calendar Pro found ${count} Event Note ${count === 1 ? 'problem' : 'problems'}. `);
       fragment.createEl('a', { text: 'Review and fix', href: '#' });
     }), 10000);
     notice.messageEl.addEventListener('click', event => { event.preventDefault(); notice.hide(); this.showProblems(); });
@@ -335,7 +335,7 @@ export default class CalendarNotePlugin extends Plugin {
       if (this.store.recoveryConflict) { this.showRecovery(); throw new Error('Resolve pending recovery before editing notes.'); }
       return await action();
     } catch (error) {
-      new Notice(error instanceof Error ? error.message : 'Calendar Note action failed.');
+      new Notice(error instanceof Error ? error.message : 'Calendar Pro action failed.');
       return undefined;
     }
   }
@@ -422,7 +422,7 @@ export default class CalendarNotePlugin extends Plugin {
     const conflict = this.store.recoveryConflict;
     if (!conflict) return;
     const modal = new Modal(this.app);
-    modal.titleEl.setText('Calendar Note recovery needs attention');
+    modal.titleEl.setText('Calendar Pro recovery needs attention');
     modal.contentEl.createEl('p', { text: 'These files changed during a pending transaction. Review them, then retry recovery. Calendar edits are paused until recovery succeeds.' });
     const list = modal.contentEl.createEl('ul');
     for (const path of conflict.paths) list.createEl('li', { text: path });
@@ -434,7 +434,7 @@ export default class CalendarNotePlugin extends Plugin {
     try {
       await this.store.recover();
       this.store.recoveryConflict = null;
-      new Notice('Calendar Note recovery completed.');
+      new Notice('Calendar Pro recovery completed.');
       await this.rescan();
       if (this.range) await this.refresh(false);
     } catch { this.showRecovery(); }

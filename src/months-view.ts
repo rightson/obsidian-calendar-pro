@@ -9,7 +9,7 @@ import { holidayDays, showsEvent } from './holidays';
 import type { PluginSettings, WeekRules } from './types';
 import type CalendarNotePlugin from './main';
 
-export const MONTHS_VIEW_TYPE = 'calendar-note-months';
+export const MONTHS_VIEW_TYPE = 'calendar-pro-months';
 const MAX_DOTS = 3;
 
 /**
@@ -26,7 +26,7 @@ export class MonthsView extends ItemView {
 
   constructor(leaf: WorkspaceLeaf, private readonly plugin: CalendarNotePlugin) { super(leaf); }
   getViewType(): string { return MONTHS_VIEW_TYPE; }
-  getDisplayText(): string { return 'Calendar Note months'; }
+  getDisplayText(): string { return 'Calendar Pro months'; }
   getIcon(): string { return 'calendar-range'; }
   private get settings(): PluginSettings { return this.plugin.store.state.settings; }
   private today(): string { return dateAt(new Date(), this.settings.timeZone).format('YYYY-MM-DD'); }

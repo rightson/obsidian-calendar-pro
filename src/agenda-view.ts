@@ -10,9 +10,9 @@ import {
   draggedInterval, eventTimeLabel, eventsOnDay, instantAt, snappedMinutes, weekDays, type PlacedEvent,
 } from './agenda-layout';
 
-export const AGENDA_VIEW_TYPE = 'calendar-note-agenda';
+export const AGENDA_VIEW_TYPE = 'calendar-pro-agenda';
 /** Page preview source for hovering an event in the sidebar; listed under Settings → Page preview. */
-export const AGENDA_HOVER_SOURCE = 'calendar-note-events';
+export const AGENDA_HOVER_SOURCE = 'calendar-pro-events';
 
 export type AgendaMode = 'day' | 'list';
 const isAgendaMode = (value: unknown): value is AgendaMode => value === 'day' || value === 'list';
@@ -65,7 +65,7 @@ export class AgendaView extends ItemView implements HoverParent {
   }
 
   getViewType(): string { return AGENDA_VIEW_TYPE; }
-  getDisplayText(): string { return 'Calendar Note events'; }
+  getDisplayText(): string { return 'Calendar Pro events'; }
   getIcon(): string { return 'calendar-clock'; }
 
   getState(): Record<string, unknown> { return { ...super.getState(), mode: this.mode }; }

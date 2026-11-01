@@ -58,7 +58,7 @@ export function describeProblem(problem: EventNoteProblem, calendarName: (source
         ? { title: `${count - 1 === 1 ? 'A copy' : `${count - 1} copies`} of an Event Note`,
           explanation: 'A calendar subscription was removed and added again. Its event is now held by one note; the other notes are older copies of it. Compare them, keep any text you need, then remove the copies.' }
         : { title: `${count} notes claim the same event`,
-          explanation: 'These notes have the same event_id, usually because a note was duplicated. Calendar-Note cannot tell which one is the event, so none of them is shown. Choose the note to keep; the others stop being Event Notes.' };
+          explanation: 'These notes have the same event_id, usually because a note was duplicated. Calendar Pro cannot tell which one is the event, so none of them is shown. Choose the note to keep; the others stop being Event Notes.' };
     case 'unlisted': {
       const source = problem.sourceId;
       return { title: source ? `Not in calendar “${calendarName(source)}”` : 'Not in its calendar',
@@ -73,14 +73,14 @@ export function describeProblem(problem: EventNoteProblem, calendarName: (source
     case 'invalid':
       return { title: 'Event properties cannot be read',
         explanation: problem.lastValid
-          ? 'The note’s event properties were edited into a form Calendar-Note cannot use. The calendar still shows the last valid version. Fix the note, or put back the last valid properties.'
+          ? 'The note’s event properties were edited into a form Calendar Pro cannot use. The calendar still shows the last valid version. Fix the note, or put back the last valid properties.'
           : 'The note’s event properties cannot be used, so its event is not shown. Open the note to fix them, or stop treating it as an Event Note.' };
     case 'missing-id':
       return { title: 'event_id was removed',
         explanation: 'This note no longer has an event_id. Until the plugin reloads, the calendar shows its last valid version. Put the event properties back, or keep the note as an ordinary note.' };
     case 'error':
       return { title: 'A linked note could not be updated',
-        explanation: 'Calendar-Note could not update a note linked to this event. Open it, check the reason below, then scan again.' };
+        explanation: 'Calendar Pro could not update a note linked to this event. Open it, check the reason below, then scan again.' };
   }
 }
 
@@ -114,7 +114,7 @@ export function summarizeNote(content: string): NoteSummary {
   return summary;
 }
 
-/** The note without the properties Calendar-Note manages, i.e. what a user wrote. */
+/** The note without the properties Calendar Pro manages, i.e. what a user wrote. */
 export function userContent(content: string): string {
   return detachEventFrontmatter(content).replace(/\s+$/, '');
 }
@@ -214,7 +214,7 @@ export interface NoteFacts {
   references: NoteReference[];
   /** Last modification time, when the Vault reports it. */
   mtime?: number;
-  /** Calendar-Note's link for the event points to this note. */
+  /** Calendar Pro's link for the event points to this note. */
   linked: boolean;
   /** The event's Daily Note entry links to this note. */
   listed: boolean;
@@ -224,7 +224,7 @@ export interface NoteFacts {
 export function recommendKeep(notes: NoteFacts[], holder?: string): { path: string; reason: string } {
   if (holder) return { path: holder, reason: 'It holds the event now.' };
   const linked = notes.filter(note => note.linked);
-  if (linked.length === 1) return { path: linked[0].path, reason: 'Calendar-Note links the event to this note.' };
+  if (linked.length === 1) return { path: linked[0].path, reason: 'Calendar Pro links the event to this note.' };
   const listed = notes.filter(note => note.listed);
   if (listed.length === 1) return { path: listed[0].path, reason: 'The Daily Note links to this note.' };
   const size = (note: NoteFacts) => note.content ? userContent(note.content).length : -1;

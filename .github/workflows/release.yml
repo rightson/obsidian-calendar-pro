@@ -62,7 +62,7 @@ jobs:
           else
             git config user.name "github-actions[bot]"
             git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git tag -a "$VERSION" -m "Calendar-Note $VERSION"
+            git tag -a "$VERSION" -m "Calendar Pro $VERSION"
             git push origin "refs/tags/$VERSION"
           fi
       - name: Publish release
@@ -72,5 +72,5 @@ jobs:
           GH_REPO: ${{ github.repository }}
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          gh release create "$VERSION" --verify-tag --title "Calendar-Note $VERSION" --notes-file "docs/releases/$VERSION.md" \
-            dist/calendar-note/main.js dist/calendar-note/manifest.json dist/calendar-note/styles.css dist/calendar-note.zip
+          gh release create "$VERSION" --verify-tag --title "Calendar Pro $VERSION" --notes-file "docs/releases/$VERSION.md" \
+            dist/calendar-pro/main.js dist/calendar-pro/manifest.json dist/calendar-pro/styles.css dist/calendar-pro.zip

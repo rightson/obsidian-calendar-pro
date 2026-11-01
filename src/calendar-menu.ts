@@ -4,7 +4,7 @@ import type { CalendarEvent, Interval } from './types';
 /** The calendar span under the pointer: one time slot, or a whole day. */
 export type PointerSpan = { kind: 'slot'; start: string; end: string } | { kind: 'day'; date: string };
 
-function overlapsDay(event: CalendarEvent, date: string, zone: string): boolean {
+export function overlapsDay(event: CalendarEvent, date: string, zone: string): boolean {
   // All-day ends are exclusive calendar dates, not instants in the display zone.
   if (event.allDay) return event.start.slice(0, 10) <= date && date < event.end.slice(0, 10);
   const from = dateAt(date, zone).valueOf();

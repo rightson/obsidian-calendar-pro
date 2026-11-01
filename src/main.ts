@@ -1,5 +1,7 @@
 import { Modal, Notice, Plugin, TFile, requestUrl } from 'obsidian';
 import { CalendarNoteView, CALENDAR_VIEW_TYPE } from './calendar-view';
+import { AgendaView, AGENDA_VIEW_TYPE, AGENDA_HOVER_SOURCE } from './agenda-view';
+import { unionRange } from './agenda-layout';
 import { MonthsView, MONTHS_VIEW_TYPE } from './months-view';
 import { calendarOpenModeForClick, ensureSidebarView, leafBelowFileExplorer, openCalendarLeaf, type CalendarOpenMode } from './calendar-open';
 import { EventPropertiesController } from './event-properties';
@@ -27,6 +29,8 @@ export default class CalendarNotePlugin extends Plugin {
   subscriptions!: SubscriptionService;
   events: CalendarEvent[] = [];
   private range?: CalendarRange;
+  /** Each open calendar surface's visible range; subscriptions expand their union. */
+  private ranges = new Map<object, CalendarRange>();
   private scanTimer?: number;
   private scanning?: Promise<void>;
   private scanAgain = false;
@@ -65,11 +69,15 @@ export default class CalendarNotePlugin extends Plugin {
     this.store.onChange = () => { this.updateEventsFromCache(); this.refreshViews(); this.scheduleMoves(); };
     this.registerView(CALENDAR_VIEW_TYPE, leaf => new CalendarNoteView(leaf, this));
     this.registerView(MONTHS_VIEW_TYPE, leaf => new MonthsView(leaf, this));
+    this.registerView(AGENDA_VIEW_TYPE, leaf => new AgendaView(leaf, this));
+    this.registerHoverLinkSource(AGENDA_HOVER_SOURCE, { display: 'Calendar Pro events sidebar', defaultMod: false });
     this.addRibbonIcon('calendar-days', 'Open Calendar Pro', evt => void this.openCalendar(calendarOpenModeForClick(evt)));
+    this.addRibbonIcon('calendar-clock', 'Open Calendar Pro events sidebar', () => void this.openAgenda());
     this.addCommand({ id: 'open-calendar', name: 'Open calendar in new tab', callback: () => void this.openCalendar('tab') });
     this.addCommand({ id: 'open-calendar-right', name: 'Open calendar in right split', callback: () => void this.openCalendar('right-split') });
     this.addCommand({ id: 'open-months', name: 'Open month calendar in sidebar', callback: () => void this.openMonths() });
     this.addCommand({ id: 'open-months-below-explorer', name: 'Move month calendar below the file explorer', callback: () => void this.openMonths('below-explorer') });
+    this.addCommand({ id: 'open-events-sidebar', name: 'Open events sidebar', callback: () => void this.openAgenda() });
     this.addCommand({ id: 'new-event', name: 'New event', callback: () => void this.openCalendar().then(view => view.newEvent()) });
     this.addCommand({ id: 'remove-duplicate-event-title', name: 'Remove duplicate Event Note title', checkCallback: checking => {
       const file = this.app.workspace.getActiveFile();
@@ -141,9 +149,14 @@ export default class CalendarNotePlugin extends Plugin {
     return this.app.workspace.getLeavesOfType(MONTHS_VIEW_TYPE)
       .map(leaf => leaf.view).filter((view): view is MonthsView => view instanceof MonthsView);
   }
+  private getAgendaViews(): AgendaView[] {
+    return this.app.workspace.getLeavesOfType(AGENDA_VIEW_TYPE)
+      .map(leaf => leaf.view).filter((view): view is AgendaView => view instanceof AgendaView);
+  }
   private refreshViews(): void {
     for (const view of this.getViews()) view.refresh();
     for (const view of this.getMonthsViews()) view.refresh();
+    for (const view of this.getAgendaViews()) view.refresh();
     this.settingTab?.refreshSubscriptionStatus();
   }
   getVisibleRange(): CalendarRange | undefined { return this.range; }
@@ -182,14 +195,34 @@ export default class CalendarNotePlugin extends Plugin {
     await workspace.revealLeaf(leaf);
   }
 
-  async onVisibleRange(range: CalendarRange): Promise<void> {
-    this.range = range;
+  /** Open the events sidebar in the right sidebar, or reveal the one already there. */
+  async openAgenda(): Promise<void> {
+    await this.app.workspace.ensureSideLeaf(AGENDA_VIEW_TYPE, 'right', { active: true, reveal: true });
+  }
+
+  /**
+   * `owner` (a calendar or the events sidebar) now shows `range`. Feeds are
+   * expanded over every open surface's range at once, so one surface moving
+   * does not drop the events another still shows.
+   */
+  async onVisibleRange(range: CalendarRange, owner: object = this): Promise<void> {
+    this.ranges.set(owner, range);
+    const next = unionRange(this.ranges.values()) ?? range;
+    const unchanged = this.range?.start === next.start && this.range?.end === next.end;
+    this.range = next;
     if (!this.ready || this.store.recoveryConflict) return;
+    if (unchanged) { this.updateEventsFromCache(); this.refreshViews(); return; }
     await this.runAction(async () => {
-      await this.subscriptions.setRange(range);
-      await this.subscriptions.refresh(range);
+      await this.subscriptions.setRange(next);
+      await this.subscriptions.refresh(next);
       this.updateEventsFromCache(); this.refreshViews();
     });
+  }
+
+  /** `owner` closed; the remaining surfaces' ranges apply from the next refresh. */
+  releaseVisibleRange(owner: object): void {
+    if (!this.ranges.delete(owner)) return;
+    this.range = unionRange(this.ranges.values()) ?? this.range;
   }
 
   async refresh(force = false): Promise<void> {
@@ -348,6 +381,7 @@ export default class CalendarNotePlugin extends Plugin {
     if (settings.eventPropertiesDefault !== previousPropertiesDefault) this.eventProperties?.settingsChanged();
     for (const view of this.getViews()) view.settingsChanged();
     for (const view of this.getMonthsViews()) view.refresh();
+    for (const view of this.getAgendaViews()) view.settingsChanged();
     this.subscriptions.dispose();
     this.subscriptions = new SubscriptionService(this.store, this.sync, async (url, headers) => {
       const result = await requestUrl({ url, headers, method: 'GET', throw: false });

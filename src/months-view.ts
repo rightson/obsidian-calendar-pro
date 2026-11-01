@@ -18,7 +18,7 @@ const MAX_DOTS = 3;
  */
 export class MonthsView extends ItemView {
   private monthsEl?: HTMLElement;
-  private titleEl?: HTMLElement;
+  private headingTitleEl?: HTMLElement;
   private firstMonth = '';
   private resizeObserver?: ResizeObserver;
   private frame?: number;
@@ -37,7 +37,7 @@ export class MonthsView extends ItemView {
     root.addClass('cn-months-view');
     const heading = root.createDiv({ cls: 'cn-months-heading' });
     const prev = heading.createEl('button', { text: '‹', attr: { type: 'button', 'aria-label': 'Previous month' } });
-    this.titleEl = heading.createEl('span', { cls: 'cn-months-title' });
+    this.headingTitleEl = heading.createEl('span', { cls: 'cn-months-title' });
     const today = heading.createEl('button', { text: 'Today', attr: { type: 'button', 'aria-label': 'Show this month first' } });
     const next = heading.createEl('button', { text: '›', attr: { type: 'button', 'aria-label': 'Next month' } });
     this.monthsEl = root.createDiv({ cls: 'cn-months' });
@@ -106,8 +106,8 @@ export class MonthsView extends ItemView {
     this.setDensity(container, density.name, density.gap);
     container.empty();
     for (let month = 0; month < count; month++) this.renderMonth(container, first.clone().add(month, 'months'), context);
-    this.titleEl?.setText(monthSpanLabel(this.firstMonth, count, zone));
-    if (this.titleEl) this.titleEl.title = count === 1 ? 'Showing one month' : `Showing ${count} months`;
+    this.headingTitleEl?.setText(monthSpanLabel(this.firstMonth, count, zone));
+    if (this.headingTitleEl) this.headingTitleEl.title = count === 1 ? 'Showing one month' : `Showing ${count} months`;
   }
 
   private setDensity(container: HTMLElement, name: MonthDensity, gap: number): void {

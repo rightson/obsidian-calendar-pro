@@ -1,105 +1,75 @@
 # Calendar Pro
 
-Calendar Pro brings local events and optional read-only iCal calendars into Obsidian. Events link to Markdown Event Notes and the matching Daily Note; a sidebar can also open Weekly Notes. It includes Week, Day, Month, Year, Custom days, and List views, plus a compact month calendar for the sidebar.
+A calendar for Obsidian that keeps your events as Markdown notes in your Vault.
 
 ![Calendar Pro week view with local events, the mini calendar, and the toolbar](docs/images/week-view.png)
 
+## Highlights
+
+- **Events are notes.** Each local event is an Event Note with `start` and `end` in its properties, linked from the Daily Note for its date. Subscribed events get an Event Note when you open them. Drag an event to another day and its Daily Note entry moves with it.
+- **Six views.** Week, Day, Month, Year, Custom days, and List, plus a mini calendar for jumping between dates. Click a date header for its Daily Note or a week number for its Weekly Note.
+- **Your schedule beside your notes.** An events sidebar shows a phone-style day timeline or a two-week list, and a month calendar sidebar marks event days and existing Daily Notes.
+- **Calendar subscriptions.** Add read-only HTTPS or `webcal://` feeds next to your local events. Holiday calendars shade their days.
+- **Finds and fixes note problems.** When a copied note duplicates an `event_id`, **Review Event Note problems** shows the copies side by side, highlights the differences, recommends which to keep, and applies the fix you choose. Notes with broken properties can be restored to their last valid version.
+- **Local and private.** No account or telemetry. The only network requests fetch the feeds you add. See [privacy and compatibility](docs/manuals/USER-GUIDE.md#privacy-and-compatibility).
+
+| Event details | Event Note problems |
+| --- | --- |
+| ![Event details dialog with start and end times and an Event Note preview](docs/images/event-details.png) | ![Review Event Note problems showing two notes with the same event_id side by side](docs/images/event-note-problems.png) |
+
 ## Install
 
-Calendar Pro requires **Obsidian 1.14.5 or later** and supports desktop Obsidian. The plugin has not been submitted to the Community Plugins directory, so it is not available through Obsidian's built-in plugin browser yet.
+Calendar Pro needs desktop **Obsidian 1.14.5 or later**. It is not in the Community Plugins directory yet.
 
-- **Download and install:** [Download the latest ZIP](https://github.com/rightson/obsidian-calendar-pro/releases/latest/download/calendar-pro.zip) and follow the [manual installation guide](docs/manuals/INSTALLATION.md).
-- **Install with BRAT:** Install BRAT from Community Plugins, then add `rightson/obsidian-calendar-pro` as a beta plugin. See the [BRAT installation guide](docs/manuals/INSTALLATION.md#install-with-brat).
-- [View all GitHub releases](https://github.com/rightson/obsidian-calendar-pro/releases).
+- **ZIP:** [download the latest release](https://github.com/rightson/obsidian-calendar-pro/releases/latest/download/calendar-pro.zip) and follow the [installation guide](docs/manuals/INSTALLATION.md), which also covers updates.
+- **BRAT:** install BRAT from Community Plugins, then add `rightson/obsidian-calendar-pro` as a beta plugin ([BRAT steps](docs/manuals/INSTALLATION.md#install-with-brat)).
+- [All releases](https://github.com/rightson/obsidian-calendar-pro/releases)
 
-## Use
+Open the calendar from the ribbon icon or the command palette, then see the [user guide](docs/manuals/USER-GUIDE.md) for clicking, sidebars, subscriptions, holiday calendars, and where Event Notes are saved.
 
-Open the calendar from the ribbon icon or the command palette. Create a local event from **New event** or an empty calendar slot. The event is saved as a Markdown Event Note and linked under `## Events` in the Daily Note for its start date. Click a date to open its Daily Note; the sidebar's week number opens that Weekly Note. Settings → **Clicking** customizes what a click does; see [Click behavior](#click-behavior). Right-click the calendar to open a menu: **New event** creates one at that time, and an **Edit** entry appears for each event at that time (or on that day in Month view), so overlapping events can each be reached.
+## Contributing
 
-### Event details
+Bug reports and pull requests are welcome. You need Node.js 22 or newer, npm, and `zip`.
 
-Click an event to open its details: title, start and end, all day, and a preview of its Event Note, which opens on the left, on the right, or in a new tab. To use a different note for an event, open its details from the right-click menu or from **⋯** and choose **Change…** beside Event Note: pick any Markdown note or type a new path. The previous Event Note stays in the Vault as an ordinary note with its text intact.
+```sh
+git clone https://github.com/rightson/obsidian-calendar-pro.git
+cd obsidian-calendar-pro
+npm ci
+npm run dev -- /absolute/path/to/test-vault
+```
 
-![Event details dialog with start and end times and an Event Note preview](docs/images/event-details.png)
+`npm run dev` rebuilds into the Vault's plugin folder on every save. The path must be absolute and point to a Vault Obsidian has already opened, so it has a `.obsidian` folder. With the [Hot Reload](https://github.com/pjeby/hot-reload) plugin installed there, Obsidian reloads Calendar Pro after each build. Use a test Vault, not your real one.
 
-### Event Note problems
+Before opening a pull request:
 
-If Event Notes conflict or cannot be read (for example, a duplicated note with the same `event_id`), run **Review Event Note problems** or click the toolbar's problem button: each problem lists the notes side by side, highlights what differs, recommends which to keep, and fixes it in place.
+```sh
+npm run typecheck
+npm test
+npm run package
+```
 
-![Review Event Note problems showing two notes with the same event_id side by side](docs/images/event-note-problems.png)
+Where things live:
 
-### Click behavior
+| Area | Files |
+| --- | --- |
+| Plugin entry, commands, settings | `src/main.ts`, `src/settings.ts`, `src/settings-tab.ts` |
+| Main calendar and mini calendar | `src/calendar-*.ts` |
+| Events sidebar and month calendar sidebar | `src/agenda-*.ts`, `src/months-*.ts` |
+| Event Notes and Daily/Weekly Notes | `src/events.ts`, `src/notes.ts`, `src/paths.ts` |
+| Event details dialog, event actions, change history | `src/modals.ts`, `src/event-actions.ts`, `src/history.ts` |
+| Subscriptions and holiday calendars | `src/ical*.ts`, `src/subscription*.ts`, `src/sync.ts`, `src/holidays.ts` |
+| Event Note problems | `src/note-problems.ts`, `src/problems-modal.ts` |
+| Saved state and crash recovery | `src/store.ts`, `src/state.ts`, `src/vault-adapter.ts` |
+| Shared types and date/week helpers | `src/types.ts`, `src/date.ts` |
+| Tests (Node test runner) | `tests/*.test.ts` |
 
-Settings → **Clicking** chooses what a left-click does in each calendar:
+Ways to help:
 
-| Setting | Where | Options |
-| --- | --- | --- |
-| **Clicking a date in the mini calendar** | The calendar on the left of the Calendar Pro tab | **Go to the date in the main calendar** (default) · **Go to the date and open its Daily Note beside the calendar** · **Go to the date and open its Daily Note in a new tab** |
-| **Clicking an empty slot in the main calendar** | A time slot or date cell with no event in the main calendar on the right | **New event in Week and Day; Daily Note in Month and Year** (default) · **Always create a new event** · **Open the Daily Note beside the calendar** · **Open the Daily Note in a new tab** · **Do nothing** |
-| **Clicking an event** | An event in the main calendar | **Show event details** (default) · **Open Event Note beside the calendar** · **Open Event Note in a new tab** |
+- **Native QA.** Several features have automated coverage only. The [native test checklist](docs/manuals/DEVELOPMENT.md#native-obsidian-test-vault-checklist) lists what to check in a real Obsidian Vault.
+- **Mobile.** Calendar Pro is desktop-only because mobile has not been tested.
 
-- "Beside the calendar" reuses one note pane next to the calendar while it stays open; "a new tab" opens on the calendar's far side so the calendar stays in view.
-- With the main calendar hidden, **Go to the date** opens the Daily Note beside the calendar, since there is no main calendar to move.
-- **Always create a new event** makes an all-day event in Month and Year views and in the all-day row.
-- These settings change only a plain left-click on an empty spot or a mini-calendar date. Date headers, day numbers, and week numbers always open their Daily or Weekly Note. Right-click always shows **New event** and **Edit** entries. An event's **⋯** button always shows its details.
+See [development and QA](docs/manuals/DEVELOPMENT.md) for the full build, install, and test notes, and [releasing](docs/manuals/RELEASING.md) for packaging a release.
 
-### Month calendar in the sidebar
+## License
 
-A compact month calendar, like a calendar widget, sits beside your notes. It is a separate view from the mini calendar inside the Calendar Pro tab, so it stays visible while you work in notes. It starts at the current month and adds the following months as long as whole months fit the panel's height.
-
-- **Where it appears:** it is added to the right sidebar when Obsidian starts, unless it is already open somewhere. Drag its tab anywhere; it stays where you put it on later starts. To stack it under the file explorer in the left sidebar, one above the other, drag it there or run **Move month calendar below the file explorer** (also a button in settings). Run **Open month calendar in sidebar** to bring it back after closing it.
-- **How many months:** a taller panel shows more months, and a wide panel lays them out side by side. In a short panel the month cards get smaller, in up to three steps, until the number of months set in **Show at least** fits. Cards only shrink when that shows an extra month.
-- **Opening notes:** click a date to open its Daily Note, or a week number to open its Weekly Note, in the main area. Ctrl/Cmd-click opens it in a new tab.
-- **What it marks:** dots under a date show its events (up to three), bold dates already have a Daily Note, and the Daily Note you are viewing is highlighted. Today is outlined, and holidays from holiday calendars are shaded as in the mini calendar (see [Holiday calendars](#holiday-calendars)).
-- **Moving through months:** use **‹** and **›**, or scroll over the months; **Today** returns to the current month.
-- Subscribed events are marked only for the dates the main calendar has loaded; local events are always marked.
-
-Settings under **Month calendar**:
-
-| Setting | Default | What it does |
-| --- | --- | --- |
-| Add to the right sidebar at startup | On | Adds the month calendar at startup when it is not open anywhere. Turn it off to keep it closed. |
-| Show at least | 3 months | In a short panel, month cards shrink until this many months fit (1–12). |
-| Place below the file explorer | — | Moves the month calendar under the file explorer in the left sidebar. |
-
-### Events sidebar
-
-For a phone-style view beside your notes, run **Open events sidebar** or click the clock ribbon icon. It opens in Obsidian's right sidebar with a week strip over the selected day's timeline (all-day events on top, a red line at the current time), or switches to a **List** of the next two weeks. Hover an event to preview its Event Note, click it to open its details (or its note, following the **Clicking an event** setting), drag it to move it or its bottom edge to change its length, and right-click for more. Double-click an empty time, or use **+**, to add an event; the day title and list headings open Daily Notes and the week number opens the Weekly Note. Holiday calendars set to hide their events stay out of the sidebar too.
-
-### Subscriptions
-
-Subscriptions are optional. Add an HTTPS or `webcal://` feed in settings to display read-only calendar events. Local events work without a subscription. Imported calendar data is cached for use in the calendar, and event changes can be reviewed in History. Removing the plugin or a feed does not delete Vault notes.
-
-### Holiday calendars
-
-Set a subscription's **Calendar type** to **Holidays** (for example a public-holiday feed such as Google's Taiwan holidays) to mark the days its events cover, not just list them. Each holiday calendar has its own options:
-
-- **Holiday background:** **Gray** (the default, following the light or dark theme), **Custom color** (pick it under **Holiday background color**), or **None**. The background fills the whole day in Week, Day, and Custom days views (both the all-day row and the time grid) and the day cell in Month and Year views. The mini calendar in the Calendar Pro tab and the sidebar month calendar mark the same dates; hover a date to see the holiday's name.
-- **Show holiday names:** turn off to hide the holiday events themselves while keeping their dates shaded. Hidden holidays also leave List view, the right-click **Edit** menu, and the month calendar's event dots.
-
-When several holiday calendars share a date, the first one in settings sets its background. The mini calendar marks holidays from every month already loaded for that calendar, so months you have never viewed may appear unmarked until you visit them. Subscriptions without a type stay ordinary event calendars.
-
-### Where Event Notes go
-
-The **Event Note pattern** setting decides where new Event Notes are created. It accepts Moment date tokens and `{title}`, `{calendar}`, and `{uid}`; the default is `[Calendar Notes]/{title}`.
-
-To keep Event Notes beside their Daily Notes, start the pattern with `{daily}`. It stands for the folder of the event's Daily Note. For example, with Daily Notes in `Journal` using the format `YYYY/MM/YYYY-MM-DD`:
-
-| Pattern | Event on 2026-10-23 |
-|---|---|
-| `{daily}/{title}` | `Journal/2026/10/<title>.md` |
-| `{daily}/[Events]/{title}` | `Journal/2026/10/Events/<title>.md` |
-
-`{daily}` must be the first part of the pattern and be followed by `/`.
-
-When an event moves to another date, its Event Note moves with it to the folder the pattern gives for the new date. This applies whether you drag the event, edit it in the calendar, change `start` in the note, or a subscription changes it. Obsidian updates links to the note as for any rename (when **Automatically update internal links** is on), and the Daily Note entry moves to the new Daily Note. A note you renamed keeps its name; if the target name is taken, a number is added, as in `Standup (2).md`. Notes you moved out of the pattern's folder yourself, or chose with **Change…**, stay where they are. A pattern without date folders, such as the default, never moves notes. Changing the pattern or Daily Notes settings affects new notes only.
-
-To keep Event Notes where they were created, turn off **Move Event Notes when dates change** in settings (it is on by default). The Daily Note entry still moves to the new date and links to the note where it is. Turning the setting off also cancels any move that has not happened yet.
-
-## Privacy and compatibility
-
-No account or telemetry is required. Calendar Pro makes read-only HTTPS requests only to fetch calendar feeds whose URLs you configure. Feed URLs, raw ICS responses, settings, history, link tracking, and recovery data are stored in Obsidian's private plugin data; Event, Daily, and Weekly Notes are written to your Vault. The plugin does not access files outside the Vault and its plugin data folder.
-
-Event Note Properties behavior depends on Obsidian's native editor DOM and is feature-detected; if the property panel is unavailable or hidden, Calendar Pro leaves it alone. Daily and Weekly Note provider settings are detected through internal Obsidian/plugin state because there is no public provider API, so provider updates may require compatibility changes.
-
-See [0.2.0 release notes](docs/releases/0.2.0.md) for the verified scope and known QA limits, [installation guide](docs/manuals/INSTALLATION.md) for setup and updates, and [development and QA](docs/manuals/DEVELOPMENT.md) for build instructions and test coverage. Calendar Pro is licensed under [MIT](LICENSE). Third-party dependency license text is embedded in the release `main.js` and included as `THIRD_PARTY_LICENSES.txt` in the package ZIP.
+[MIT](LICENSE). Third-party licenses are embedded in the release `main.js` and included as `THIRD_PARTY_LICENSES.txt` in the ZIP. See the [0.2.0 release notes](docs/releases/0.2.0.md) for this version's verified scope and known limits, and [all release notes](docs/releases/) for earlier versions.

@@ -2,6 +2,8 @@
 
 Calendar Pro brings local events and optional read-only iCal calendars into Obsidian. Events link to Markdown Event Notes and the matching Daily Note; a sidebar can also open Weekly Notes. It includes Week, Day, Month, Year, Custom days, and List views, plus a compact month calendar for the sidebar.
 
+![Calendar Pro week view with local events, the mini calendar, and the toolbar](docs/images/week-view.png)
+
 ## Install
 
 Calendar Pro requires **Obsidian 1.14.5 or later** and supports desktop Obsidian. The plugin has not been submitted to the Community Plugins directory, so it is not available through Obsidian's built-in plugin browser yet.
@@ -12,7 +14,19 @@ Calendar Pro requires **Obsidian 1.14.5 or later** and supports desktop Obsidian
 
 ## Use
 
-Open the calendar from the ribbon icon or the command palette. Create a local event from **New event** or an empty calendar slot. The event is saved as a Markdown Event Note and linked under `## Events` in the Daily Note for its start date. Click a date to open its Daily Note; the sidebar's week number opens that Weekly Note. Settings → **Clicking** customizes what a click does; see [Click behavior](#click-behavior). Right-click the calendar to open a menu: **New event** creates one at that time, and an **Edit** entry appears for each event at that time (or on that day in Month view), so overlapping events can each be reached. To use a different note for an event, open its details from that menu or from **⋯** and choose **Change…** beside Event Note: pick any Markdown note or type a new path. The previous Event Note stays in the Vault as an ordinary note with its text intact. If Event Notes conflict or cannot be read (for example, a duplicated note with the same `event_id`), run **Review Event Note problems** or click the toolbar's problem button: each problem lists the notes side by side, highlights what differs, recommends which to keep, and fixes it in place.
+Open the calendar from the ribbon icon or the command palette. Create a local event from **New event** or an empty calendar slot. The event is saved as a Markdown Event Note and linked under `## Events` in the Daily Note for its start date. Click a date to open its Daily Note; the sidebar's week number opens that Weekly Note. Settings → **Clicking** customizes what a click does; see [Click behavior](#click-behavior). Right-click the calendar to open a menu: **New event** creates one at that time, and an **Edit** entry appears for each event at that time (or on that day in Month view), so overlapping events can each be reached.
+
+### Event details
+
+Click an event to open its details: title, start and end, all day, and a preview of its Event Note, which opens on the left, on the right, or in a new tab. To use a different note for an event, open its details from the right-click menu or from **⋯** and choose **Change…** beside Event Note: pick any Markdown note or type a new path. The previous Event Note stays in the Vault as an ordinary note with its text intact.
+
+![Event details dialog with start and end times and an Event Note preview](docs/images/event-details.png)
+
+### Event Note problems
+
+If Event Notes conflict or cannot be read (for example, a duplicated note with the same `event_id`), run **Review Event Note problems** or click the toolbar's problem button: each problem lists the notes side by side, highlights what differs, recommends which to keep, and fixes it in place.
+
+![Review Event Note problems showing two notes with the same event_id side by side](docs/images/event-note-problems.png)
 
 ### Click behavior
 
@@ -48,9 +62,11 @@ Settings under **Month calendar**:
 | Show at least | 3 months | In a short panel, month cards shrink until this many months fit (1–12). |
 | Place below the file explorer | — | Moves the month calendar under the file explorer in the left sidebar. |
 
-### Subscriptions
+### Events sidebar
 
 For a phone-style view beside your notes, run **Open events sidebar** or click the clock ribbon icon. It opens in Obsidian's right sidebar with a week strip over the selected day's timeline (all-day events on top, a red line at the current time), or switches to a **List** of the next two weeks. Hover an event to preview its Event Note, click it to open its details (or its note, following the **Clicking an event** setting), drag it to move it or its bottom edge to change its length, and right-click for more. Double-click an empty time, or use **+**, to add an event; the day title and list headings open Daily Notes and the week number opens the Weekly Note. Holiday calendars set to hide their events stay out of the sidebar too.
+
+### Subscriptions
 
 Subscriptions are optional. Add an HTTPS or `webcal://` feed in settings to display read-only calendar events. Local events work without a subscription. Imported calendar data is cached for use in the calendar, and event changes can be reviewed in History. Removing the plugin or a feed does not delete Vault notes.
 

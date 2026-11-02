@@ -44,7 +44,7 @@ export class AgendaView extends ItemView implements HoverParent {
   private readonly actions: EventActions;
   private mode: AgendaMode = 'day';
   private selectedDay = '';
-  private titleEl?: HTMLElement;
+  private headingTitleEl?: HTMLElement;
   private weekEl?: HTMLButtonElement;
   private modeButtons = new Map<AgendaMode, HTMLButtonElement>();
   private stripEl?: HTMLElement;
@@ -98,7 +98,7 @@ export class AgendaView extends ItemView implements HoverParent {
 
     const header = root.createDiv({ cls: 'cn-agenda-header' });
     const heading = header.createDiv({ cls: 'cn-agenda-heading' });
-    this.titleEl = heading.createEl('strong', { cls: 'cn-agenda-title' });
+    this.headingTitleEl = heading.createEl('strong', { cls: 'cn-agenda-title' });
     this.weekEl = heading.createEl('button', { cls: 'cn-agenda-week-number clickable-icon', attr: { type: 'button' } });
     this.weekEl.addEventListener('click', () => void this.plugin.runAction(() => this.plugin.notes.openWeekly(this.selectedDay, this.actions.tabTarget)));
     const tools = heading.createDiv({ cls: 'cn-agenda-tools' });
@@ -214,7 +214,7 @@ export class AgendaView extends ItemView implements HoverParent {
     const days = weekDays(this.selectedDay, this.firstDay(), zone);
     this.reportRange(days);
 
-    this.titleEl?.setText(selected.format('MMMM YYYY'));
+    this.headingTitleEl?.setText(selected.format('MMMM YYYY'));
     const week = weekInfo(this.selectedDay, resolveWeekRules(this.app, this.settings), zone);
     if (this.weekEl) {
       this.weekEl.setText(`W${week.number}`);

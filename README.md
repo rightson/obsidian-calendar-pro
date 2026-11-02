@@ -72,4 +72,4 @@ See [development and QA](docs/manuals/DEVELOPMENT.md) for the full build, instal
 
 ## License
 
-[MIT](LICENSE). Third-party licenses are embedded in the release `main.js` and included as `THIRD_PARTY_LICENSES.txt` in the ZIP. See the [0.2.0 release notes](docs/releases/0.2.0.md) for this version's verified scope and known limits, and [all release notes](docs/releases/) for earlier versions.
+[MIT](LICENSE). Third-party licenses are embedded in the release `main.js` and included as `THIRD_PARTY_LICENSES.txt` in the ZIP. See the [0.2.1 release notes](docs/releases/0.2.1.md) for this version's verified scope and known limits, and [all release notes](docs/releases/) for earlier versions.

@@ -85,6 +85,8 @@ export interface PluginSettings extends WeekRules {
   monthsOnStartup: boolean;
   /** Month cards shrink until at least this many months fit the panel. */
   monthsMinimum: number;
+  /** Changing the events sidebar's date keeps the time of day on screen, instead of scrolling to the first event. */
+  agendaKeepTime: boolean;
 }
 
 export interface ResolvedNoteSettings {

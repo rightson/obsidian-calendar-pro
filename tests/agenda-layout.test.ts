@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   AGENDA_NEXT_DAY_MAX_HOURS, AGENDA_NEXT_DAY_MIN_HOURS, agendaDays, centeredScrollTop, dayRange, daysWithEvents, draggedInterval, eventTimeLabel, eventsOnDay, instantAt, snappedMinutes,
-  nextDayPreviewHours, unionRange, weekDays,
+  nextDayPreviewHours, previousDayPreviewHours, unionRange, weekDays,
 } from '../src/agenda-layout';
 import type { CalendarEvent } from '../src/types';
 
@@ -143,4 +143,13 @@ test('the next day is previewed only once centring the current time would reach 
   assert.equal(nextDayPreviewHours(20 * 60, 0, 48), 0);
   assert.equal(nextDayPreviewHours(13 * 60, 5000, 48), AGENDA_NEXT_DAY_MAX_HOURS);
   assert.equal(nextDayPreviewHours(9 * 60, 5000, 48), 0);
+});
+
+test('the previous day is previewed only while centring the current time would reach above midnight', () => {
+  // A 480px view holds ten 48px hours: five above the centre, so six hours of preview.
+  assert.equal(previousDayPreviewHours(0, 480, 48), 6);
+  assert.equal(previousDayPreviewHours(5 * 60 + 59, 480, 48), 6);
+  assert.equal(previousDayPreviewHours(6 * 60, 480, 48), 0);
+  assert.equal(previousDayPreviewHours(60, 0, 48), AGENDA_NEXT_DAY_MIN_HOURS);
+  assert.equal(previousDayPreviewHours(3 * 60, 0, 48), 0);
 });

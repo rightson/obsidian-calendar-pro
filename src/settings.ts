@@ -30,6 +30,7 @@ export const DEFAULT_SETTINGS: PluginSettings = {
   workdaysOnly: false,
   monthsOnStartup: true,
   monthsMinimum: 3,
+  agendaKeepTime: true,
 };
 
 type RecordLike = Record<string, unknown>;
@@ -53,6 +54,7 @@ export function normalizePluginSettings(raw: unknown, fallback: PluginSettings =
     moveEventNotes: typeof input.moveEventNotes === 'boolean' ? input.moveEventNotes : fallback.moveEventNotes,
     monthsOnStartup: typeof input.monthsOnStartup === 'boolean' ? input.monthsOnStartup : fallback.monthsOnStartup,
     monthsMinimum: isMonthsMinimum(input.monthsMinimum) ? input.monthsMinimum : fallback.monthsMinimum,
+    agendaKeepTime: typeof input.agendaKeepTime === 'boolean' ? input.agendaKeepTime : fallback.agendaKeepTime,
     eventPropertiesDefault: isEventPropertiesDefault(input.eventPropertiesDefault)
       ? input.eventPropertiesDefault : fallback.eventPropertiesDefault,
     eventClickAction: isEventClickAction(input.eventClickAction) ? input.eventClickAction : fallback.eventClickAction,

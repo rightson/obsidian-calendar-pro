@@ -279,3 +279,12 @@ body:not(.is-phone) .modal.cn-event-modal { width: min(1100px, 80vw); min-width:
 .cn-agenda-row-meta { overflow: hidden; color: var(--text-muted); font-size: .72rem; text-overflow: ellipsis; white-space: nowrap; }
 .cn-agenda-row-meta:empty { display: none; }
 .cn-agenda-hour.is-near-now .cn-agenda-hour-label { visibility: hidden; }
+/* The next day's first hours, dimmed below today's midnight; clicking them shows that day. */
+.cn-agenda-next-day { position: absolute; left: 0; right: 0; z-index: 1; opacity: .45; cursor: pointer; transition: opacity .12s; }
+.cn-agenda-next-day:hover, .cn-agenda-next-day:focus-visible { opacity: .75; }
+.cn-agenda-next-day:focus-visible { outline: 2px solid var(--interactive-accent); outline-offset: -2px; }
+.cn-agenda-next-day .cn-agenda-lane, .cn-agenda-next-day .cn-agenda-event { pointer-events: none; }
+.cn-agenda-next-day .cn-agenda-event:not([style*="--cn-event-color"]) { --cn-event-color: var(--interactive-accent); }
+.cn-agenda-next-day .cn-agenda-hour.is-midnight { border-top: 2px solid var(--text-faint); }
+.cn-agenda-next-day-title { position: absolute; top: 4px; right: 8px; z-index: 1; padding: 0 6px; border-radius: 8px; background: var(--background-primary); color: var(--text-muted); font-size: .7rem; font-weight: 700; pointer-events: none; }
+.cn-agenda-scroll { overflow-anchor: none; }

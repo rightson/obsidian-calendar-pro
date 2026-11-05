@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  agendaDays, dayRange, daysWithEvents, draggedInterval, eventTimeLabel, eventsOnDay, instantAt, snappedMinutes,
-  unionRange, weekDays,
+  AGENDA_NEXT_DAY_MAX_HOURS, AGENDA_NEXT_DAY_MIN_HOURS, agendaDays, centeredScrollTop, dayRange, daysWithEvents, draggedInterval, eventTimeLabel, eventsOnDay, instantAt, snappedMinutes,
+  nextDayPreviewHours, unionRange, weekDays,
 } from '../src/agenda-layout';
 import type { CalendarEvent } from '../src/types';
 
@@ -124,4 +124,23 @@ test('visible ranges merge into the smallest range covering them', () => {
     { start: '2026-10-17T16:00:00.000Z', end: '2026-11-04T16:00:00.000Z' });
   assert.deepEqual(unionRange([{ start: 'not a date', end: 'x' }, dayRange('2026-10-22', '2026-10-22', zone)]),
     { start: '2026-10-21T16:00:00.000Z', end: '2026-10-22T16:00:00.000Z' });
+});
+
+test('the current time is centred, but never scrolled above the top', () => {
+  // 14:00 on a 48px hour is 672px down; a 400px view puts it 200px from the top.
+  assert.equal(centeredScrollTop(14 * 60, 400, 0, 48), 472);
+  assert.equal(centeredScrollTop(14 * 60, 400, 8, 48), 480);
+  assert.equal(centeredScrollTop(60, 400, 8, 48), 0);
+});
+
+test('the next day is previewed only once centring the current time would reach midnight', () => {
+  // A 480px view holds ten 48px hours: five below the centre, so six hours of preview.
+  assert.equal(nextDayPreviewHours(17 * 60 + 59, 480, 48), 0);
+  assert.equal(nextDayPreviewHours(18 * 60, 480, 48), 6);
+  assert.equal(nextDayPreviewHours(23 * 60 + 59, 480, 48), 6);
+  // A collapsed or tiny view still previews a few hours late at night; a huge one is capped.
+  assert.equal(nextDayPreviewHours(22 * 60, 0, 48), AGENDA_NEXT_DAY_MIN_HOURS);
+  assert.equal(nextDayPreviewHours(20 * 60, 0, 48), 0);
+  assert.equal(nextDayPreviewHours(13 * 60, 5000, 48), AGENDA_NEXT_DAY_MAX_HOURS);
+  assert.equal(nextDayPreviewHours(9 * 60, 5000, 48), 0);
 });

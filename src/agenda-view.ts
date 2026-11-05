@@ -6,8 +6,8 @@ import type { CalendarEvent, PluginSettings } from './types';
 import { EventActions } from './event-actions';
 import { showsEvent } from './holidays';
 import {
-  AGENDA_HOUR_HEIGHT, AGENDA_LIST_DAYS, AGENDA_MIN_BLOCK_MINUTES, addDays, agendaDays, dayRange, daysWithEvents,
-  draggedInterval, eventTimeLabel, eventsOnDay, instantAt, snappedMinutes, weekDays, type PlacedEvent,
+  AGENDA_HOUR_HEIGHT, AGENDA_LIST_DAYS, AGENDA_MIN_BLOCK_MINUTES, addDays, agendaDays, centeredScrollTop, dayRange, daysWithEvents,
+  draggedInterval, eventTimeLabel, eventsOnDay, instantAt, nextDayPreviewHours, snappedMinutes, weekDays, type PlacedEvent,
 } from './agenda-layout';
 
 export const AGENDA_VIEW_TYPE = 'calendar-pro-agenda';
@@ -53,6 +53,14 @@ export class AgendaView extends ItemView implements HoverParent {
   private scrollEl?: HTMLElement;
   private nowEl?: HTMLElement;
   private scrollPending = true;
+  /** While true, today's timeline keeps the current time in the middle; scrolling by hand turns it off. */
+  private followNow = false;
+  /** The scroll offset the view last set itself, to tell its own scrolling from the user's. */
+  private autoScrollTop?: number;
+  /** A scroll offset to restore on the next render instead of the usual one. */
+  private nextScrollTop?: number;
+  /** Hours of the next day previewed below today's timeline in the current render. */
+  private previewHours = 0;
   private rangeKey = '';
   private drag?: DragState;
   private suppressClickUntil = 0;
@@ -140,6 +148,10 @@ export class AgendaView extends ItemView implements HoverParent {
     this.dayTitleEl.addEventListener('click', () => void this.openDaily(this.selectedDay));
     this.bodyEl = root.createDiv({ cls: 'cn-agenda-body' });
 
+    // A sidebar opened, resized, or revealed after being collapsed recentres the current time.
+    const resize = new ResizeObserver(() => this.layoutChanged());
+    resize.observe(this.bodyEl);
+    this.register(() => resize.disconnect());
     this.registerInterval(window.setInterval(() => this.tick(), 60_000));
     this.registerDomEvent(window, 'keydown', event => { if (event.key === 'Escape' && this.drag) this.cancelDrag(); });
     this.render();
@@ -175,6 +187,42 @@ export class AgendaView extends ItemView implements HoverParent {
     this.render();
   }
 
+  /** Follows the timeline down into the next day, keeping the hours on screen where they were. */
+  private showNextDay(): void {
+    const scrollTop = this.scrollEl?.scrollTop ?? 0;
+    this.selectedDay = addDays(this.selectedDay, 1, this.zone);
+    this.scrollPending = false;
+    this.followNow = false;
+    this.nextScrollTop = Math.max(0, scrollTop - 24 * HOUR);
+    this.render();
+  }
+
+  /** Today's timeline previews the next day once the centred current time nears midnight. */
+  private wantedPreviewHours(): number {
+    if (this.mode !== 'day' || this.selectedDay !== this.today()) return 0;
+    const now = dateAt(new Date(), this.zone);
+    return nextDayPreviewHours(now.hours() * 60 + now.minutes(), this.bodyEl?.clientHeight ?? 0, HOUR);
+  }
+
+  private layoutChanged(): void {
+    if (this.mode !== 'day' || this.drag) return;
+    if (this.wantedPreviewHours() !== this.previewHours) this.render();
+    else if (this.followNow) this.centerNow();
+  }
+
+  /** Scrolls today's timeline so the current time sits in the middle of the view. */
+  private centerNow(): void {
+    const scroll = this.scrollEl;
+    const grid = scroll?.querySelector<HTMLElement>('.cn-agenda-grid');
+    if (!scroll || !grid || this.mode !== 'day' || this.selectedDay !== this.today()) return;
+    // A collapsed sidebar has no height yet; the resize observer centres it once shown.
+    if (!scroll.clientHeight) return;
+    const now = dateAt(new Date(), this.zone);
+    const gridTop = grid.getBoundingClientRect().top - scroll.getBoundingClientRect().top + scroll.scrollTop;
+    scroll.scrollTop = centeredScrollTop(now.hours() * 60 + now.minutes(), scroll.clientHeight, gridTop, HOUR);
+    this.autoScrollTop = scroll.scrollTop;
+  }
+
   /** The minute tick moves the now line, and follows today past midnight when today was shown. */
   private tick(): void {
     const today = this.today();
@@ -184,8 +232,9 @@ export class AgendaView extends ItemView implements HoverParent {
       this.render();
       return;
     }
+    if (this.mode === 'list' || this.wantedPreviewHours() !== this.previewHours) { if (!this.drag) this.render(); return; }
     this.placeNowLine();
-    if (this.mode === 'list') this.render();
+    if (this.followNow && !this.drag) this.centerNow();
   }
 
   private openDaily(day: string): Promise<unknown> {
@@ -254,6 +303,7 @@ export class AgendaView extends ItemView implements HoverParent {
     this.bodyEl.empty();
     this.nowEl = undefined;
     this.scrollEl = undefined;
+    this.previewHours = 0;
     if (this.mode === 'day') this.renderDay(previousScroll);
     else this.renderList(previousScroll);
   }
@@ -273,14 +323,22 @@ export class AgendaView extends ItemView implements HoverParent {
     }
     const scroll = body.createDiv({ cls: 'cn-agenda-scroll' });
     this.scrollEl = scroll;
+    scroll.addEventListener('scroll', () => {
+      // Any scroll the view did not make itself is the user's: stop keeping the current time centred.
+      if (this.followNow && this.autoScrollTop !== undefined && Math.abs(scroll.scrollTop - this.autoScrollTop) > 1) this.followNow = false;
+    }, { passive: true });
+    const preview = this.wantedPreviewHours();
+    this.previewHours = preview;
     const grid = scroll.createDiv({ cls: 'cn-agenda-grid' });
-    grid.style.height = `${24 * HOUR}px`;
+    grid.style.height = `${(24 + preview) * HOUR}px`;
     for (let hour = 0; hour < 24; hour++) {
       const line = grid.createDiv({ cls: 'cn-agenda-hour' });
       line.style.top = `${hour * HOUR}px`;
+      line.dataset.minute = String(hour * 60);
       if (hour) line.createSpan({ cls: 'cn-agenda-hour-label', text: `${String(hour).padStart(2, '0')}:00` });
     }
     const lane = grid.createDiv({ cls: 'cn-agenda-lane' });
+    lane.style.height = `${24 * HOUR}px`;
     lane.addEventListener('dblclick', event => {
       if (event.target !== lane) return;
       this.newEventAt(this.minuteAt(lane, event));
@@ -297,18 +355,70 @@ export class AgendaView extends ItemView implements HoverParent {
       menu.showAtMouseEvent(event);
     });
     for (const placed of timed) this.renderBlock(lane, placed);
+    if (preview) this.renderNextDay(grid, preview);
     this.placeNowLine(grid);
 
-    if (this.scrollPending) {
+    const isToday = this.selectedDay === this.today();
+    if (this.nextScrollTop !== undefined) {
+      const top = this.nextScrollTop;
+      this.nextScrollTop = undefined;
+      scroll.scrollTop = top;
+    } else if (this.scrollPending) {
       this.scrollPending = false;
-      const now = dateAt(new Date(), this.zone);
-      const first = timed.find(item => !item.continuesBefore)?.startMinute;
-      const minute = this.selectedDay === this.today() ? now.hours() * 60 + now.minutes() - 90 : first !== undefined ? first - 30 : 8 * 60;
-      // The grid is laid out once it is in the document; scroll on the next frame.
-      requestAnimationFrame(() => { scroll.scrollTop = Math.max(0, minute / 60 * HOUR); });
+      this.followNow = isToday;
+      if (isToday) this.centerNow();
+      else {
+        const first = timed.find(item => !item.continuesBefore)?.startMinute;
+        scroll.scrollTop = Math.max(0, (first !== undefined ? first - 30 : 8 * 60) / 60 * HOUR);
+      }
+    } else if (this.followNow && isToday) {
+      this.centerNow();
     } else {
+      this.followNow = false;
       scroll.scrollTop = previousScroll;
     }
+  }
+
+  /**
+   * The first hours of the next day, dimmed below today's midnight, so the
+   * current time can stay centred late at night. Clicking them shows that day.
+   */
+  private renderNextDay(grid: HTMLElement, hours: number): void {
+    const day = addDays(this.selectedDay, 1, this.zone);
+    const date = dateAt(day, this.zone).locale('en');
+    const next = grid.createDiv({ cls: 'cn-agenda-next-day', attr: {
+      role: 'button', tabindex: '0', 'aria-label': `Show tomorrow, ${date.format('dddd, MMMM D')}`,
+    } });
+    next.style.top = `${24 * HOUR}px`;
+    next.style.height = `${hours * HOUR}px`;
+    for (let hour = 0; hour < hours; hour++) {
+      const line = next.createDiv({ cls: 'cn-agenda-hour' });
+      line.toggleClass('is-midnight', hour === 0);
+      line.style.top = `${hour * HOUR}px`;
+      line.dataset.minute = String((24 + hour) * 60);
+      line.createSpan({ cls: 'cn-agenda-hour-label', text: `${String(hour).padStart(2, '0')}:00` });
+    }
+    next.createDiv({ cls: 'cn-agenda-next-day-title', text: `Tomorrow · ${date.format('ddd, MMM D')}` });
+    const lane = next.createDiv({ cls: 'cn-agenda-lane' });
+    for (const { event, startMinute, endMinute, column, columns } of eventsOnDay(this.shownEvents(), day, this.zone).timed) {
+      if (startMinute >= hours * 60) continue;
+      const block = lane.createDiv({ cls: 'cn-agenda-event' });
+      const color = this.settings.sources.find(source => source.id === event.sourceId)?.color;
+      if (color) block.style.setProperty('--cn-event-color', color);
+      block.style.top = `${startMinute / 60 * HOUR}px`;
+      block.style.height = `${Math.min(Math.max(endMinute - startMinute, AGENDA_MIN_BLOCK_MINUTES), hours * 60 - startMinute) / 60 * HOUR - 2}px`;
+      block.style.left = `calc(${column / columns * 100}% + 1px)`;
+      block.style.width = `calc(${100 / columns}% - 3px)`;
+      block.toggleClass('is-short', endMinute - startMinute < 45);
+      block.createDiv({ cls: 'cn-agenda-event-title', text: event.title });
+      block.createDiv({ cls: 'cn-agenda-event-time', text: eventTimeLabel(event, day, this.zone) });
+    }
+    next.addEventListener('click', () => this.showNextDay());
+    next.addEventListener('keydown', key => {
+      if (key.key !== 'Enter' && key.key !== ' ') return;
+      key.preventDefault();
+      this.showNextDay();
+    });
   }
 
   private renderBlock(lane: HTMLElement, placed: PlacedEvent): void {
@@ -429,7 +539,7 @@ export class AgendaView extends ItemView implements HoverParent {
     this.nowEl.style.top = `${minute / 60 * HOUR}px`;
     this.nowEl.dataset.time = now.format('HH:mm');
     // The current time's label replaces an hour label it would overlap.
-    hours.forEach((hour, index) => hour.toggleClass('is-near-now', Math.abs(index * 60 - minute) < 15));
+    for (const hour of hours) hour.toggleClass('is-near-now', Math.abs(Number(hour.dataset.minute) - minute) < 15);
   }
 
   private startDrag(down: PointerEvent, block: HTMLElement, timeEl: HTMLElement, placed: PlacedEvent, mode: DragState['mode']): void {

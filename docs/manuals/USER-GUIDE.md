@@ -54,6 +54,8 @@ Settings under **Month calendar**:
 
 For a phone-style view beside your notes, run **Open events sidebar** or click the clock ribbon icon. It opens in Obsidian's right sidebar with a week strip over the selected day's timeline (all-day events on top, a red line at the current time), or switches to a **List** of the next two weeks. Hover an event to preview its Event Note, click it to open its details (or its note, following the **Clicking an event** setting), drag it to move it or its bottom edge to change its length, and right-click for more. Double-click an empty time, or use **+**, to add an event; the day title and list headings open Daily Notes and the week number opens the Weekly Note. Holiday calendars set to hide their events stay out of the sidebar too.
 
+Today's timeline keeps the current time in the middle of the sidebar and follows it minute by minute. Scroll it yourself and it stays where you put it; click **Today** (or today in the week strip) to follow the current time again. Late in the evening, the first hours of tomorrow appear dimmed below midnight, with tomorrow's events; click them to switch to tomorrow.
+
 ## Subscriptions
 
 Subscriptions are optional. Add an HTTPS or `webcal://` feed in settings to display read-only calendar events. Local events work without a subscription. Imported calendar data is cached for use in the calendar, and event changes can be reviewed in History. Removing the plugin or a feed does not delete Vault notes.

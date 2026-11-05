@@ -87,6 +87,10 @@ export interface PluginSettings extends WeekRules {
   monthsMinimum: number;
   /** Changing the events sidebar's date keeps the time of day on screen, instead of scrolling to the first event. */
   agendaKeepTime: boolean;
+  /** Folder for person notes created from a Gantt assignee. */
+  ganttPeopleFolder: string;
+  /** Show a diff before the first Gantt write to each note in a session. */
+  ganttConfirmWrites: boolean;
 }
 
 export interface ResolvedNoteSettings {

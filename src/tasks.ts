@@ -1,4 +1,4 @@
-import { annotationFields, daysBetween, parseTaskLine, renderTaskLine, type Assignee, type TaskFields, type TaskLine } from './annotation';
+import { addDays, annotationFields, daysBetween, parseTaskLine, parseToken, renderTaskLine, type Assignee, type Schedule, type TaskFields, type TaskLine } from './annotation';
 import { scanMarkdown } from './notes';
 
 /**
@@ -214,4 +214,55 @@ export function parseAssigneeInput(input: string): Assignee[] | undefined {
 /** `@name` becomes `by [[name]]`; other assignees are unchanged. */
 export function upgradeAssignee(assignees: Assignee[], name: string): Assignee[] {
   return assignees.map(assignee => assignee.style === 'at' && assignee.name === name ? { name, style: 'link' } : assignee);
+}
+
+/** A date typed in a cell: M/D in the current year or YYYY-MM-DD; null when emptied, undefined when unreadable. */
+export function parseDateInput(text: string, today: string): string | null | undefined {
+  const value = text.trim();
+  if (!value) return null;
+  const token = parseToken(value, today);
+  return token?.kind === 'due' ? token.date : undefined;
+}
+
+/**
+ * The schedule after editing a leaf's Start or End cell. A Start without an
+ * End starts and ends that day; clearing Start leaves the End as a deadline.
+ */
+export function scheduleFromCell(node: Pick<TaskNode, 'start' | 'end' | 'due'>, cell: 'start' | 'end', value: string | null): Schedule | string {
+  const end = node.end ?? node.due;
+  if (cell === 'start') {
+    if (value === null) return end ? { due: end } : null;
+    if (!end) return { start: value, end: value };
+    return value > end ? 'Start is after End.' : { start: value, end };
+  }
+  if (value === null) return null;
+  if (!node.start) return { due: value };
+  return value < node.start ? 'End is before Start.' : { start: node.start, end: value };
+}
+
+/** A dated leaf of a Project as a read-only all-day calendar entry. */
+export interface TaskEvent {
+  id: string;
+  path: string;
+  line: number;
+  text: string;
+  title: string;
+  kind: 'range' | 'due' | 'milestone';
+  start: string;
+  /** Exclusive, as all-day calendar events end. */
+  end: string;
+  progress: number;
+  blockId?: string;
+}
+
+export function projectTaskEvents(path: string, project: Project): TaskEvent[] {
+  return project.nodes.flatMap(node => {
+    if (node.summary || !node.isTask) return [];
+    const kind = node.start && node.end ? 'range' : node.due ? 'due' : node.milestone ? 'milestone' : undefined;
+    if (!kind) return [];
+    const start = kind === 'range' ? node.start! : (node.due ?? node.milestone)!;
+    const last = kind === 'range' ? node.end! : start;
+    return [{ id: `task|${path}|${node.line}`, path, line: node.line, text: node.text, title: plainTitle(node.title), kind,
+      start, end: addDays(last, 1), progress: node.progress ?? 0, ...node.parsed.blockId ? { blockId: node.parsed.blockId } : {} }];
+  });
 }

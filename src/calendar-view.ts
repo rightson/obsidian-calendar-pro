@@ -18,6 +18,7 @@ import { mainDateClick, miniDateClick, type NotePlacement } from './calendar-cli
 import { sidebarWidthForContainer, resizeSidebarWithKeyboard, togglePanel, type CalendarPanel } from './sidebar-layout';
 import { subscriptionFailureMessage } from './subscription-settings';
 import { holidayDays, showsEvent, type HolidayDay } from './holidays';
+import type { TaskEvent } from './tasks';
 
 export const CALENDAR_VIEW_TYPE = 'calendar-pro-calendar';
 export const CALENDAR_VIEWS = [
@@ -230,6 +231,14 @@ export class CalendarNoteView extends ItemView {
       eventDrop: arg => void this.handleMove(arg),
       eventResize: arg => void this.handleMove(arg),
       eventDidMount: arg => {
+        const task = this.plugin.projects?.find(arg.event.id);
+        if (task) {
+          const label = `${task.title}, ${task.progress}% done. Project task: schedule it or open the Project Note.`;
+          arg.el.setAttribute('aria-label', label);
+          arg.el.title = `${task.title} · ${task.progress}% · ${task.path.replace(/\.md$/i, '')}`;
+          arg.el.addEventListener('contextmenu', e => { e.preventDefault(); e.stopPropagation(); this.showTaskMenu(task, e); });
+          return;
+        }
         const event = this.plugin.eventById(arg.event.id);
         if (!event) return;
         arg.el.setAttribute('aria-label', `${event.title}. ${this.settings.eventClickAction === 'dialog' ? 'Show event details.' : 'Open Event Note.'}`);
@@ -514,6 +523,13 @@ export class CalendarNoteView extends ItemView {
       allDay: event.allDay,
       backgroundColor: sources.find(source => source.id === event.sourceId)?.color ?? undefined,
     }));
+    // Dated Project tasks: read-only all-day entries with no Event Note.
+    for (const task of this.plugin.projects?.events() ?? []) {
+      events.push({
+        id: task.id, title: task.kind === 'milestone' ? `◆ ${task.title}` : task.title, start: task.start, end: task.end, allDay: true,
+        editable: false, classNames: ['cn-task-event', `is-${task.kind}`, ...task.progress >= 100 ? ['is-done'] : []],
+      });
+    }
     // One whole-day background per holiday date: it fills the day's column in time grids and its cell in Month and Year.
     for (const [day, holiday] of this.holidays) {
       if (!holiday.color) continue;
@@ -580,9 +596,25 @@ export class CalendarNoteView extends ItemView {
   }
   private handleEventClick(arg: EventClickArg): void {
     arg.jsEvent.preventDefault();
+    const task = this.plugin.projects?.find(arg.event.id);
+    if (task) { this.showTaskMenu(task, arg.jsEvent); return; }
     if (Date.now() - this.lastDragAt < 600) return;
     const event = this.plugin.eventById(arg.event.id);
     if (event) this.actions.click(event);
+  }
+  /** A Project task: put it at a time on the day under the pointer, or open its line. */
+  private showTaskMenu(task: TaskEvent, e: MouseEvent): void {
+    // The day cell under the pointer, not the cell a multi-day bar starts in.
+    const under = document.elementsFromPoint(e.clientX, e.clientY)
+      .filter(el => !el.closest('.fc-event'))
+      .map(el => (el as HTMLElement).closest<HTMLElement>('[data-date]')?.dataset.date?.slice(0, 10)).find(Boolean);
+    const day = under && under >= task.start && under < task.end ? under : task.start;
+    const label = dateAt(day, this.settings.timeZone).locale('en').format('ddd, MMM D');
+    const menu = new Menu();
+    menu.addItem(item => item.setTitle(`Schedule on ${label}…`).setIcon('clock').onClick(() => this.plugin.scheduleTask(task, day)));
+    menu.addItem(item => item.setTitle('Open Project Note').setIcon('file-text')
+      .onClick(() => void this.plugin.runAction(() => this.plugin.openNoteAt(task.path, task.line, this.actions.tabTarget()))));
+    menu.showAtMouseEvent(e);
   }
   /** Right-click: add an event here, or edit any event shown under the pointer. */
   private showSlotMenu(e: MouseEvent, clicked?: CalendarEvent): void {

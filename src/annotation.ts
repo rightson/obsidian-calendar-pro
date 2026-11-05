@@ -354,3 +354,19 @@ export function ensureBlockId(text: string, today: string, make: () => string): 
   const trimmed = text.replace(/\s+$/, '');
   return { text: `${trimmed} ^${id}${text.slice(trimmed.length)}`, id };
 }
+
+/**
+ * Segments that keep a trailing bracket from being an annotation although
+ * others in it are tokens, as in `(30%, 待確認)`; empty when the bracket is
+ * a plain remark or there is none.
+ */
+export function remarkIssue(title: string, today: string): string[] {
+  const close = title.slice(-1);
+  const open = PAIRS[close];
+  if (!open) return [];
+  const at = title.lastIndexOf(open);
+  if (at < 0) return [];
+  const parts = title.slice(at + 1, -1).trim().split(SEP).filter((_, index) => index % 2 === 0);
+  const unknown = parts.filter(part => !parseToken(part, today));
+  return unknown.length && unknown.length < parts.length ? unknown : [];
+}

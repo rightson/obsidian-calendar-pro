@@ -1,11 +1,12 @@
-import { Modal, Notice, Plugin, TFile, requestUrl } from 'obsidian';
+import { MarkdownView, Modal, Notice, Plugin, TFile, requestUrl, type WorkspaceLeaf } from 'obsidian';
+import moment from 'moment-timezone';
 import { CalendarNoteView, CALENDAR_VIEW_TYPE } from './calendar-view';
 import { AgendaView, AGENDA_VIEW_TYPE, AGENDA_HOVER_SOURCE } from './agenda-view';
 import { unionRange } from './agenda-layout';
 import { MonthsView, MONTHS_VIEW_TYPE } from './months-view';
 import { calendarOpenModeForClick, ensureSidebarView, leafBelowFileExplorer, openCalendarLeaf, type CalendarOpenMode } from './calendar-open';
 import { EventPropertiesController } from './event-properties';
-import { ChangeHistoryModal } from './modals';
+import { ChangeHistoryModal, EventModal } from './modals';
 import { EventNoteProblemsModal } from './problems-modal';
 import { CalendarNoteSettingTab } from './settings-tab';
 import { DEFAULT_SETTINGS } from './settings';
@@ -21,6 +22,12 @@ import type { CalendarEvent, Interval, PluginSettings } from './types';
 import type { CalendarRange } from './ical';
 import { dateAt } from './date';
 import { isEventNoteFrontmatter } from './event-properties-state';
+import { GanttView, GANTT_VIEW_TYPE, ganttIcon } from './gantt-view';
+import { ProjectIndex } from './project-index';
+import { ProjectWriter } from './project-writer';
+import { replaceLine } from './project-edit';
+import { ensureBlockId } from './annotation';
+import type { TaskEvent } from './tasks';
 
 export default class CalendarNotePlugin extends Plugin {
   store!: CalendarStore;
@@ -44,6 +51,11 @@ export default class CalendarNotePlugin extends Plugin {
   private settingTab?: CalendarNoteSettingTab;
   private settingsUpdates!: SettingsUpdateQueue;
   private problemsModal?: EventNoteProblemsModal;
+  projects!: ProjectIndex;
+  projectWriter!: ProjectWriter;
+  private ganttActionViews = new WeakSet<MarkdownView>();
+  private ganttActions = new Set<HTMLElement>();
+  private projectsScanned = false;
 
   async onload(): Promise<void> {
     const state = normalizeState(await this.loadData(), DEFAULT_SETTINGS);
@@ -70,6 +82,34 @@ export default class CalendarNotePlugin extends Plugin {
     this.registerView(CALENDAR_VIEW_TYPE, leaf => new CalendarNoteView(leaf, this));
     this.registerView(MONTHS_VIEW_TYPE, leaf => new MonthsView(leaf, this));
     this.registerView(AGENDA_VIEW_TYPE, leaf => new AgendaView(leaf, this));
+    this.projectWriter = new ProjectWriter({
+      app: this.app,
+      settings: () => this.store.state.settings,
+      updateSettings: change => this.updateSettings(change),
+      written: path => { for (const view of this.getGanttViews()) if (view.file?.path === path) void view.reload(); },
+    });
+    this.projects = new ProjectIndex(this.app, () => this.today(), () => { for (const view of this.getViews()) view.refresh(); });
+    this.registerView(GANTT_VIEW_TYPE, leaf => new GanttView(leaf, this));
+    this.addCommand({ id: 'open-gantt', name: 'Open current note as Gantt', checkCallback: checking => {
+      const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+      const file = view?.file ?? this.app.workspace.getActiveFile();
+      if (!(file instanceof TFile) || file.extension !== 'md') return false;
+      if (!checking) void this.openGantt(file, view?.leaf);
+      return true;
+    } });
+    this.registerEvent(this.app.workspace.on('file-menu', (menu, file) => {
+      if (!(file instanceof TFile) || file.extension !== 'md') return;
+      menu.addItem(item => item.setTitle('Open as Gantt').setIcon(ganttIcon()).onClick(() => void this.openGantt(file)));
+    }));
+    this.registerEvent(this.app.workspace.on('layout-change', () => this.addGanttActions()));
+    this.registerEvent(this.app.workspace.on('active-leaf-change', () => this.addGanttActions()));
+    this.registerEvent(this.app.metadataCache.on('changed', (file, data, cache) => this.projects.update(file, data, cache)));
+    this.registerEvent(this.app.metadataCache.on('deleted', file => this.projects.remove(file.path)));
+    this.registerEvent(this.app.metadataCache.on('resolved', () => {
+      if (!this.ready || this.projectsScanned) return;
+      this.projectsScanned = true;
+      void this.projects.scanAll();
+    }));
     this.registerHoverLinkSource(AGENDA_HOVER_SOURCE, { display: 'Calendar Pro events sidebar', defaultMod: false });
     this.addRibbonIcon('calendar-days', 'Open Calendar Pro', evt => void this.openCalendar(calendarOpenModeForClick(evt)));
     this.addRibbonIcon('calendar-clock', 'Open Calendar Pro events sidebar', () => void this.openAgenda());
@@ -101,6 +141,7 @@ export default class CalendarNotePlugin extends Plugin {
     this.registerEvent(this.app.vault.on('delete', file => { if (file instanceof TFile) changed(file); }));
     this.registerEvent(this.app.vault.on('rename', (file, oldPath) => {
       if (!(file instanceof TFile) || file.extension !== 'md') return;
+      void this.projects.rename(file, oldPath);
       void this.runAction(async () => { await this.notes.handleRename(file, oldPath); this.scheduleScan(); });
     }));
     this.registerEvent(this.app.metadataCache.on('changed', file => { if (file.extension === 'md') this.scheduleScan(); }));
@@ -124,6 +165,8 @@ export default class CalendarNotePlugin extends Plugin {
     this.app.workspace.onLayoutReady(() => {
       if (this.disposed) return;
       this.ready = true;
+      this.addGanttActions();
+      void this.projects.scanAll();
       void this.runAction(async () => { await this.notes.finalizePendingRenames(); }).then(() => this.rescan());
       this.scheduleMoves();
       this.subscriptions.start();
@@ -139,11 +182,16 @@ export default class CalendarNotePlugin extends Plugin {
     this.restoreRenameFile?.();
     if (this.scanTimer) window.clearTimeout(this.scanTimer);
     this.subscriptions?.dispose();
+    for (const action of this.ganttActions) action.remove();
   }
 
   private getViews(): CalendarNoteView[] {
     return this.app.workspace.getLeavesOfType(CALENDAR_VIEW_TYPE)
       .map(leaf => leaf.view).filter((view): view is CalendarNoteView => view instanceof CalendarNoteView);
+  }
+  private getGanttViews(): GanttView[] {
+    return this.app.workspace.getLeavesOfType(GANTT_VIEW_TYPE)
+      .map(leaf => leaf.view).filter((view): view is GanttView => view instanceof GanttView);
   }
   private getMonthsViews(): MonthsView[] {
     return this.app.workspace.getLeavesOfType(MONTHS_VIEW_TYPE)
@@ -340,9 +388,9 @@ export default class CalendarNotePlugin extends Plugin {
     }
   }
 
-  async createLocal(title: string, interval: Interval): Promise<void> {
+  async createLocal(title: string, interval: Interval, properties?: Record<string, string>): Promise<void> {
     if (this.store.recoveryConflict) throw new Error('Resolve pending recovery before creating events.');
-    const event = await this.notes.createLocal({ title, ...interval });
+    const event = await this.notes.createLocal({ title, ...interval, properties });
     this.events = [...this.events.filter(item => item.id !== event.id), event];
     this.refreshViews();
     this.scheduleScan();
@@ -365,6 +413,68 @@ export default class CalendarNotePlugin extends Plugin {
       this.scheduleScan();
       return linked;
     });
+  }
+
+  today(): string { return dateAt(new Date(), this.store.state.settings.timeZone).format('YYYY-MM-DD'); }
+
+  /** Show a note as a Gantt in `leaf`, or in the active leaf. */
+  async openGantt(file: TFile, leaf?: WorkspaceLeaf): Promise<void> {
+    const target = leaf ?? this.app.workspace.getLeaf(false);
+    await target.setViewState({ type: GANTT_VIEW_TYPE, state: { file: file.path, mode: 'table' }, active: true });
+  }
+
+  /** A title bar button on every Markdown view. */
+  private addGanttActions(): void {
+    for (const leaf of this.app.workspace.getLeavesOfType('markdown')) {
+      const view = leaf.view;
+      if (!(view instanceof MarkdownView) || this.ganttActionViews.has(view)) continue;
+      this.ganttActionViews.add(view);
+      this.ganttActions.add(view.addAction(ganttIcon(), 'Open as Gantt', () => { if (view.file) void this.openGantt(view.file, view.leaf); }));
+    }
+  }
+
+  /** Open a note with its line in view and the cursor on it. */
+  async openNoteAt(path: string, line: number, leaf?: WorkspaceLeaf): Promise<void> {
+    const file = this.app.vault.getAbstractFileByPath(path);
+    if (!(file instanceof TFile)) throw new Error(`${path} no longer exists.`);
+    const target = leaf ?? this.app.workspace.getLeaf('tab');
+    await target.openFile(file, { active: true, eState: { line } });
+    await this.app.workspace.revealLeaf(target);
+    const view = target.view;
+    if (view instanceof MarkdownView) {
+      const position = { line, ch: 0 };
+      view.editor.setCursor(position);
+      view.editor.scrollIntoView({ from: position, to: position }, true);
+    }
+  }
+
+  /**
+   * Schedule a Project task at a time on `day`: the usual new-event dialog,
+   * then an Event Note whose `task` property links the task line's block.
+   */
+  scheduleTask(task: TaskEvent, day: string): void {
+    const settings = this.store.state.settings;
+    const start = moment.tz(`${day}T09:00:00`, 'YYYY-MM-DDTHH:mm:ss', true, settings.timeZone).toISOString();
+    const end = dateAt(start, settings.timeZone).add(settings.defaultDurationMinutes, 'minutes').toISOString();
+    new EventModal(this.app, settings, async value => {
+      const id = await this.taskBlockId(task);
+      const file = this.app.vault.getAbstractFileByPath(task.path);
+      if (!(file instanceof TFile)) throw new Error(`${task.path} no longer exists.`);
+      await this.createLocal(value.title, value.interval, { task: `[[${this.app.metadataCache.fileToLinktext(file, '')}#^${id}]]` });
+    }, undefined, { start, end, allDay: false, title: task.title }).open();
+  }
+
+  private async taskBlockId(task: TaskEvent): Promise<string> {
+    if (task.blockId) return task.blockId;
+    const fresh = Math.random().toString(36).slice(2, 8);
+    let id = '';
+    const changed = await this.projectWriter.write(task.path, content => replaceLine(content, task.line, task.text, text => {
+      const made = ensureBlockId(text, this.today(), () => fresh);
+      id = made.id;
+      return made.text;
+    }));
+    if (!id || (!changed && id === fresh)) throw new Error('The task line was not changed, so no event was created.');
+    return id;
   }
 
   updateSettings(change: (settings: PluginSettings) => void, validate?: (settings: PluginSettings) => void): Promise<void> {

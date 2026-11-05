@@ -10,7 +10,7 @@ import { holidayOptions, isCalendarKind, isHolidayShade } from './holidays';
 
 const sample = { id: 'local|sample', sourceId: 'local', uid: 'sample', title: 'Sample event', start: '2026-10-23T09:00:00+08:00', end: '2026-10-23T10:00:00+08:00', allDay: false };
 type TextSettingKey = 'eventPattern' | 'dailyFolder' | 'dailyFormat' | 'dailyTemplate'
-  | 'weeklyFolder' | 'weeklyFormat' | 'weeklyTemplate' | 'locale' | 'timeZone';
+  | 'weeklyFolder' | 'weeklyFormat' | 'weeklyTemplate' | 'locale' | 'timeZone' | 'ganttPeopleFolder';
 
 export function validatePluginSettings(app: App, settings: PluginSettings): { event: string; daily: string; weekly: string } {
   if (!moment.tz.zone(settings.timeZone)) throw new Error('Enter a valid IANA time zone.');
@@ -23,7 +23,7 @@ export function validatePluginSettings(app: App, settings: PluginSettings): { ev
   if (!isMiniDateClickAction(settings.miniDateClickAction)) throw new Error('Choose a valid mini calendar click action.');
   if (!isMainDateClickAction(settings.mainDateClickAction)) throw new Error('Choose a valid main calendar click action.');
   if (!isMonthsMinimum(settings.monthsMinimum)) throw new Error(`Show at least 1–${MONTHS_MINIMUM_MAX} months.`);
-  folderPath(settings.dailyFolder); folderPath(settings.weeklyFolder);
+  folderPath(settings.dailyFolder); folderPath(settings.weeklyFolder); folderPath(settings.ganttPeopleFolder);
   const event = eventNotePath(sample, 'Local', app, settings);
   const daily = dailyNotePath('2026-10-23', app, settings);
   const weekly = weeklyNotePath('2026-10-23', app, settings);
@@ -115,6 +115,9 @@ export class CalendarNoteSettingTab extends PluginSettingTab {
       .addButton(button => button.setButtonText('Move').onClick(() => void this.plugin.openMonths('below-explorer')));
     new Setting(root).setName('Events sidebar').setHeading();
     this.toggle(root, 'Keep the time of day when changing dates', 'Another date opens at the hours you were looking at. Turn it off to open each date at its first event (or 08:00). Today always opens at the current time.', 'agendaKeepTime');
+    new Setting(root).setName('Gantt').setHeading();
+    this.text(root, 'People folder', 'Where the + button next to a [[name]] assignee creates the person\'s note.', 'ganttPeopleFolder');
+    this.toggle(root, 'Preview the first change to each note', 'Show the change as a diff before the Gantt view first writes to a note in this session.', 'ganttConfirmWrites');
     new Setting(root).setName('Subscriptions').setHeading();
     this.number(root, 'Refresh interval (minutes)', 'syncIntervalMinutes');
     for (const source of settings.sources) this.sourceSetting(root, source);
@@ -191,7 +194,7 @@ export class CalendarNoteSettingTab extends PluginSettingTab {
       input.inputEl.addEventListener('keydown', e => { if (e.key === 'Enter') input.inputEl.blur(); });
     });
   }
-  private toggle(root: HTMLElement, name: string, description: string, key: 'moveEventNotes' | 'agendaKeepTime'): void {
+  private toggle(root: HTMLElement, name: string, description: string, key: 'moveEventNotes' | 'agendaKeepTime' | 'ganttConfirmWrites'): void {
     new Setting(root).setName(name).setDesc(description).addToggle(toggle => {
       toggle.setValue(this.plugin.store.state.settings[key]).onChange(value => {
         void this.save(next => { next[key] = value; });

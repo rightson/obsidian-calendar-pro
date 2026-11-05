@@ -199,3 +199,75 @@ test('找小王 suggests an assignee; hints skip what the task already has', () 
   assert.deepEqual(taskHints('找小王 明天', today, { dated: false, assigned: false }).map(hint => hint.kind), ['date', 'assign']);
   assert.deepEqual(taskHints('找小王 明天', today, { dated: true, assigned: true }), []);
 });
+
+test('cells take M/D or YYYY-MM-DD and keep Start before End', async () => {
+  const { parseDateInput, scheduleFromCell } = await import('../src/tasks');
+  assert.equal(parseDateInput('11/9', today), '2026-11-09');
+  assert.equal(parseDateInput(' 2027-01-02 ', today), '2027-01-02');
+  assert.equal(parseDateInput('', today), null);
+  assert.equal(parseDateInput('next week', today), undefined);
+  assert.equal(parseDateInput('9/11/2026', today), undefined);
+  const range = { start: '2026-11-04', end: '2026-11-10' };
+  assert.deepEqual(scheduleFromCell(range, 'start', '2026-11-05'), { start: '2026-11-05', end: '2026-11-10' });
+  assert.equal(scheduleFromCell(range, 'start', '2026-11-11'), 'Start is after End.');
+  assert.deepEqual(scheduleFromCell(range, 'start', null), { due: '2026-11-10' });
+  assert.deepEqual(scheduleFromCell(range, 'end', null), null);
+  assert.equal(scheduleFromCell(range, 'end', '2026-11-01'), 'End is before Start.');
+  assert.deepEqual(scheduleFromCell({ due: '2026-11-20' }, 'start', '2026-11-18'), { start: '2026-11-18', end: '2026-11-20' });
+  assert.deepEqual(scheduleFromCell({}, 'start', '2026-11-18'), { start: '2026-11-18', end: '2026-11-18' });
+  assert.deepEqual(scheduleFromCell({}, 'end', '2026-11-18'), { due: '2026-11-18' });
+});
+
+test('a bracket with tokens and one unknown segment is reported, a plain remark is not', async () => {
+  const { remarkIssue } = await import('../src/annotation');
+  assert.deepEqual(remarkIssue('A (30%, 待確認)', today), ['待確認']);
+  assert.deepEqual(remarkIssue('前端 （跟 AAA 確認）', today), []);
+  assert.deepEqual(remarkIssue('A', today), []);
+});
+
+test('dated leaves become all-day calendar entries; summaries and plain rows do not', async () => {
+  const { projectTaskEvents } = await import('../src/tasks');
+  const events = projectTaskEvents('Projects/Site.md', parseProject(EXAMPLE, today));
+  assert.deepEqual(events.map(event => [event.title, event.kind, event.start, event.end]), [
+    ['線框圖', 'range', '2026-11-02', '2026-11-05'],
+    ['視覺稿', 'range', '2026-11-04', '2026-11-11'],
+    ['API', 'range', '2026-11-09', '2026-11-23'],
+    ['發新聞稿', 'milestone', '2026-11-30', '2026-12-01'],
+  ]);
+  assert.equal(events[0].id, 'task|Projects/Site.md|5');
+});
+
+test('line edits find the line again when it moved, and refuse when it is gone', async () => {
+  const { replaceLine } = await import('../src/project-edit');
+  assert.equal(replaceLine('a\r\nb\r\nc', 1, 'b', text => `${text}!`), 'a\r\nb!\r\nc');
+  assert.equal(replaceLine('x\na\nb\nc', 1, 'b', text => `${text}!`), 'x\na\nb!\nc');
+  assert.throws(() => replaceLine('a\nc', 1, 'b', text => text));
+  assert.throws(() => replaceLine('b\nb', 5, 'b', text => text));
+});
+
+test('the gantt key is added once, keeping other frontmatter', async () => {
+  const { ensureGanttKey, hasGanttKey } = await import('../src/project-edit');
+  assert.equal(ensureGanttKey('- A\n'), '---\ngantt: true\n---\n- A\n');
+  assert.equal(ensureGanttKey('---\ntags: [x]\n---\n- A\n'), '---\ntags: [x]\ngantt: true\n---\n- A\n');
+  assert.equal(ensureGanttKey('---\ngantt: false\n---\n- A\n'), '---\ngantt: false\n---\n- A\n');
+  assert.equal(hasGanttKey('---\ngantt:\n---\n'), true);
+  assert.equal(hasGanttKey('gantt: true\n'), false);
+});
+
+test('line hunks reproduce the new text and keep separate changes apart', async () => {
+  const { applyHunks, lineHunks } = await import('../src/project-edit');
+  const cases: [string, string][] = [
+    ['a\nb\nc', 'a\nB\nc'],
+    ['a\nb\nc', '---\ngantt: true\n---\na\nb\nc!'],
+    ['a\nb\nc\n', 'a\nc\n'],
+    ['a\nb', 'a'],
+    ['a', 'a\nb'],
+    ['a\nb', 'b'],
+    ['', 'x'],
+    ['x\ny\nz', ''],
+  ];
+  for (const [before, after] of cases) assert.equal(applyHunks(before, lineHunks(before, after)), after, JSON.stringify([before, after]));
+  const hunks = lineHunks('a\nb\nc\nd\ne', 'A\nb\nc\nd\nE');
+  assert.equal(hunks.length, 2);
+  assert.deepEqual(hunks.map(hunk => [hunk.removed, hunk.added]), [[['a'], ['A']], [['e'], ['E']]]);
+});

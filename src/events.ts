@@ -486,7 +486,8 @@ export class EventNoteService {
     });
   }
 
-  async createLocal(input: { title: string; start: string; end: string; allDay?: boolean }): Promise<CalendarEvent> {
+  /** `properties` are extra frontmatter for the new note, such as a Project task link. */
+  async createLocal(input: { title: string; start: string; end: string; allDay?: boolean; properties?: Record<string, string> }): Promise<CalendarEvent> {
     return this.serialized(async () => {
       validateInterval(input.start, input.end, input.allDay);
       const title = input.title.trim();
@@ -495,7 +496,7 @@ export class EventNoteService {
       const event: CalendarEvent = { id: `local|${uid}`, sourceId: 'local', uid, title,
         start: input.start, end: input.end, allDay: input.allDay ?? false };
       const path = await this.availableEventPath(event);
-      await this.store.commit([{ path, before: null, after: newEventNote(event, path), type: 'event', ownerId: event.id }], () => undefined);
+      await this.store.commit([{ path, before: null, after: newEventNote(event, path, input.properties), type: 'event', ownerId: event.id }], () => undefined);
       try {
         const plan = await this.planEventWrites(event, { addMissing: true });
         await this.store.commit(plan.writes, state => { state.noteLinks[event.id] = plan.link; });

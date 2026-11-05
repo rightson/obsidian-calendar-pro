@@ -158,11 +158,21 @@ export function adoptEventFrontmatter(content: string, event: CalendarEvent): st
   return writeEventFrontmatter(`---${fm.newline}${lines.join(fm.newline)}${fm.newline}---${fm.newline}${fm.body}`, event);
 }
 
-export function newEventNote(event: CalendarEvent, notePath?: string): string {
+export function newEventNote(event: CalendarEvent, notePath?: string, properties?: Record<string, string>): string {
   const basename = notePath?.split('/').pop()?.replace(/\.md$/i, '').normalize('NFC');
-  if (basename === event.title.normalize('NFC')) return writeEventFrontmatter('', event);
   const heading = event.title.replace(/[\r\n]/g, ' ').trim();
-  return writeEventFrontmatter(`# ${heading}\n\n`, event);
+  const content = writeEventFrontmatter(basename === event.title.normalize('NFC') ? '' : `# ${heading}\n\n`, event);
+  return properties ? addProperties(content, properties) : content;
+}
+
+/** Add string properties after the managed ones, skipping keys the note already has. */
+function addProperties(content: string, properties: Record<string, string>): string {
+  const fm = splitFrontmatter(content);
+  const lines = [...fm.lines];
+  for (const [key, value] of Object.entries(properties)) {
+    if (!lines.some(line => new RegExp(`^${key}:(?:\\s|$)`).test(line))) lines.push(`${key}: ${JSON.stringify(value)}`);
+  }
+  return `---${fm.newline}${lines.join(fm.newline)}${fm.newline}---${fm.newline}${fm.body}`;
 }
 
 /** Remove an exact duplicate filename heading from a recognized Event Note only. */

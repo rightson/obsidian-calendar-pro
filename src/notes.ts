@@ -191,7 +191,7 @@ export function eventBullet(event: CalendarEvent, notePath: string, zone: string
 
 interface Line { text: string; start: number; end: number; plain: boolean }
 /** Split Markdown into lines and return the fence still open at the end, if any. */
-function scanMarkdown(content: string): { lines: Line[]; openFence: string | null } {
+export function scanMarkdown(content: string): { lines: Line[]; openFence: string | null } {
   const bodyStart = content.length - splitFrontmatter(content).body.length;
   let offset = 0;
   let fence = null as { mark: string; length: number } | null;

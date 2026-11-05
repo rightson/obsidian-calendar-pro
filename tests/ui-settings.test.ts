@@ -47,3 +47,13 @@ test('the events sidebar keeps the time of day by default', async () => {
   assert.equal(normalizePluginSettings({ agendaKeepTime: false }).agendaKeepTime, false);
   assert.equal(normalizePluginSettings({ agendaKeepTime: 'no' }).agendaKeepTime, true);
 });
+
+test('working hours default to 08:00–18:00 and must end after they start', async () => {
+  const { normalizePluginSettings } = await import('../src/settings');
+  const hours = (input: Record<string, unknown>) => { const s = normalizePluginSettings(input); return [s.agendaWorkStart, s.agendaWorkEnd, s.agendaWorkHoursOnly]; };
+  assert.deepEqual(hours({}), [8, 18, false]);
+  assert.deepEqual(hours({ agendaWorkStart: 0, agendaWorkEnd: 24, agendaWorkHoursOnly: true }), [0, 24, true]);
+  for (const [start, end] of [[18, 8], [9, 9], [-1, 10], [9, 25], [8.5, 18], ['8', 18], [8, undefined]]) {
+    assert.deepEqual(hours({ agendaWorkStart: start, agendaWorkEnd: end }), [8, 18, false]);
+  }
+});

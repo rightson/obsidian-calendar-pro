@@ -31,6 +31,9 @@ export const DEFAULT_SETTINGS: PluginSettings = {
   monthsOnStartup: true,
   monthsMinimum: 3,
   agendaKeepTime: true,
+  agendaWorkHoursOnly: false,
+  agendaWorkStart: 8,
+  agendaWorkEnd: 18,
 };
 
 type RecordLike = Record<string, unknown>;
@@ -55,6 +58,10 @@ export function normalizePluginSettings(raw: unknown, fallback: PluginSettings =
     monthsOnStartup: typeof input.monthsOnStartup === 'boolean' ? input.monthsOnStartup : fallback.monthsOnStartup,
     monthsMinimum: isMonthsMinimum(input.monthsMinimum) ? input.monthsMinimum : fallback.monthsMinimum,
     agendaKeepTime: typeof input.agendaKeepTime === 'boolean' ? input.agendaKeepTime : fallback.agendaKeepTime,
+    agendaWorkHoursOnly: typeof input.agendaWorkHoursOnly === 'boolean' ? input.agendaWorkHoursOnly : fallback.agendaWorkHoursOnly,
+    ...(isWorkHours(input.agendaWorkStart, input.agendaWorkEnd)
+      ? { agendaWorkStart: input.agendaWorkStart, agendaWorkEnd: input.agendaWorkEnd as number }
+      : { agendaWorkStart: fallback.agendaWorkStart, agendaWorkEnd: fallback.agendaWorkEnd }),
     eventPropertiesDefault: isEventPropertiesDefault(input.eventPropertiesDefault)
       ? input.eventPropertiesDefault : fallback.eventPropertiesDefault,
     eventClickAction: isEventClickAction(input.eventClickAction) ? input.eventClickAction : fallback.eventClickAction,
@@ -64,6 +71,12 @@ export function normalizePluginSettings(raw: unknown, fallback: PluginSettings =
 }
 
 export const MONTHS_MINIMUM_MAX = 12;
+
+/** Working hours are whole hours from 0 to 24, starting before they end. */
+export function isWorkHours(start: unknown, end: unknown): start is number {
+  return typeof start === 'number' && typeof end === 'number' && Number.isInteger(start) && Number.isInteger(end)
+    && start >= 0 && end <= 24 && start < end;
+}
 
 export function isMonthsMinimum(value: unknown): value is number {
   return typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= MONTHS_MINIMUM_MAX;

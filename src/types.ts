@@ -87,6 +87,11 @@ export interface PluginSettings extends WeekRules {
   monthsMinimum: number;
   /** Changing the events sidebar's date keeps the time of day on screen, instead of scrolling to the first event. */
   agendaKeepTime: boolean;
+  /** The events sidebar's Day timeline shows only the working hours below. */
+  agendaWorkHoursOnly: boolean;
+  /** Working hours as whole hours: from `agendaWorkStart`:00 until `agendaWorkEnd`:00. */
+  agendaWorkStart: number;
+  agendaWorkEnd: number;
 }
 
 export interface ResolvedNoteSettings {

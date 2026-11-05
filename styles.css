@@ -289,3 +289,11 @@ body:not(.is-phone) .modal.cn-event-modal { width: min(1100px, 80vw); min-width:
 .cn-agenda-adjacent-day-title { position: absolute; top: 4px; right: 8px; z-index: 1; padding: 0 6px; border-radius: 8px; background: var(--background-primary); color: var(--text-muted); font-size: .7rem; font-weight: 700; pointer-events: none; }
 .cn-agenda-adjacent-day.is-previous .cn-agenda-adjacent-day-title { top: auto; bottom: 4px; }
 .cn-agenda-scroll { overflow-anchor: none; }
+/* The shown hours of the selected day; events outside them are clipped. */
+.cn-agenda-clip { position: absolute; left: 0; right: 0; overflow: hidden; }
+.cn-agenda-now.is-outside { display: none; }
+/* Counts of events outside working hours, at the top and bottom edges of the timeline. */
+.cn-agenda-hidden { position: absolute; z-index: 3; right: 8px; height: auto; padding: 1px 8px; border-radius: 10px; font-size: .7rem; color: var(--text-muted); background: var(--background-secondary); box-shadow: none; cursor: pointer; }
+.cn-agenda-hidden:hover { color: var(--interactive-accent); }
+.cn-agenda-hidden.is-earlier { top: 2px; }
+.cn-agenda-hidden.is-later { bottom: 2px; }

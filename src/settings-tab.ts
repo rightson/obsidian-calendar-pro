@@ -2,7 +2,7 @@ import { Notice, PluginSettingTab, Setting, type App, type ToggleComponent } fro
 import moment from 'moment-timezone';
 import type CalendarNotePlugin from './main';
 import type { CalendarSource, PluginSettings } from './types';
-import { isEventClickAction, isEventPropertiesDefault, isMainDateClickAction, isMiniDateClickAction, isMonthsMinimum, MONTHS_MINIMUM_MAX, resolveDailySettings, resolveWeeklySettings } from './settings';
+import { isEventClickAction, isEventPropertiesDefault, isMainDateClickAction, isMiniDateClickAction, isMonthsMinimum, isWorkHours, MONTHS_MINIMUM_MAX, resolveDailySettings, resolveWeeklySettings } from './settings';
 import { dailyNotePath, eventNotePath, weeklyNotePath, folderPath } from './paths';
 import { patchSubscription, subscriptionStatus } from './subscription-settings';
 import { PROBLEM_LABELS, PROBLEM_ORDER } from './note-problems';
@@ -22,6 +22,7 @@ export function validatePluginSettings(app: App, settings: PluginSettings): { ev
   if (!isEventClickAction(settings.eventClickAction)) throw new Error('Choose a valid event click action.');
   if (!isMiniDateClickAction(settings.miniDateClickAction)) throw new Error('Choose a valid mini calendar click action.');
   if (!isMainDateClickAction(settings.mainDateClickAction)) throw new Error('Choose a valid main calendar click action.');
+  if (!isWorkHours(settings.agendaWorkStart, settings.agendaWorkEnd)) throw new Error('Working hours must end after they start.');
   if (!isMonthsMinimum(settings.monthsMinimum)) throw new Error(`Show at least 1–${MONTHS_MINIMUM_MAX} months.`);
   folderPath(settings.dailyFolder); folderPath(settings.weeklyFolder);
   const event = eventNotePath(sample, 'Local', app, settings);
@@ -114,7 +115,12 @@ export class CalendarNoteSettingTab extends PluginSettingTab {
       .setDesc('Moves the month calendar to the left sidebar, under the file explorer.')
       .addButton(button => button.setButtonText('Move').onClick(() => void this.plugin.openMonths('below-explorer')));
     new Setting(root).setName('Events sidebar').setHeading();
-    this.toggle(root, 'Keep the time of day when changing dates', 'Another date opens at the hours you were looking at. Turn it off to open each date at its first event (or 08:00). Today always opens at the current time.', 'agendaKeepTime');
+    this.toggle(root, 'Keep the time of day when changing dates', 'Another date, today included, opens at the hours you were looking at. Turn it off to open each date at its first event (or 08:00). The Today button always goes to the current time.', 'agendaKeepTime');
+    const hour = (h: number): [string, string] => [String(h), `${String(h).padStart(2, '0')}:00`];
+    this.dropdown(root, 'Working hours start', 'agendaWorkStart', Array.from({ length: 24 }, (_, h) => hour(h)),
+      'Right-click the sidebar\'s timeline to switch between all hours and working hours only.');
+    this.dropdown(root, 'Working hours end', 'agendaWorkEnd', Array.from({ length: 24 }, (_, h) => hour(h + 1)));
+    this.toggle(root, 'Show working hours only', 'The Day timeline shows only the working hours above.', 'agendaWorkHoursOnly');
     new Setting(root).setName('Subscriptions').setHeading();
     this.number(root, 'Refresh interval (minutes)', 'syncIntervalMinutes');
     for (const source of settings.sources) this.sourceSetting(root, source);
@@ -191,7 +197,7 @@ export class CalendarNoteSettingTab extends PluginSettingTab {
       input.inputEl.addEventListener('keydown', e => { if (e.key === 'Enter') input.inputEl.blur(); });
     });
   }
-  private toggle(root: HTMLElement, name: string, description: string, key: 'moveEventNotes' | 'agendaKeepTime'): void {
+  private toggle(root: HTMLElement, name: string, description: string, key: 'moveEventNotes' | 'agendaKeepTime' | 'agendaWorkHoursOnly'): void {
     new Setting(root).setName(name).setDesc(description).addToggle(toggle => {
       toggle.setValue(this.plugin.store.state.settings[key]).onChange(value => {
         void this.save(next => { next[key] = value; });
@@ -210,14 +216,14 @@ export class CalendarNoteSettingTab extends PluginSettingTab {
       input.inputEl.addEventListener('keydown', e => { if (e.key === 'Enter') input.inputEl.blur(); });
     });
   }
-  private dropdown(root: HTMLElement, name: string, key: 'weekMode' | 'weekStart' | 'snapMinutes' | 'eventPropertiesDefault' | 'eventClickAction' | 'miniDateClickAction' | 'mainDateClickAction' | 'monthsMinimum', values: [string, string][], description?: string): void {
+  private dropdown(root: HTMLElement, name: string, key: 'weekMode' | 'weekStart' | 'snapMinutes' | 'eventPropertiesDefault' | 'eventClickAction' | 'miniDateClickAction' | 'mainDateClickAction' | 'monthsMinimum' | 'agendaWorkStart' | 'agendaWorkEnd', values: [string, string][], description?: string): void {
     const setting = new Setting(root).setName(name);
     if (description) setting.setDesc(description);
     setting.addDropdown(select => {
       for (const [value, label] of values) select.addOption(value, label);
       select.setValue(String(this.plugin.store.state.settings[key]));
       select.onChange(value => {
-        void this.save(next => { (next as unknown as Record<string, unknown>)[key] = key === 'snapMinutes' || key === 'monthsMinimum' ? Number(value) : value; });
+        void this.save(next => { (next as unknown as Record<string, unknown>)[key] = ['snapMinutes', 'monthsMinimum', 'agendaWorkStart', 'agendaWorkEnd'].includes(key) ? Number(value) : value; });
       });
     });
   }

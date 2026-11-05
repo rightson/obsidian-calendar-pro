@@ -79,6 +79,22 @@
 .cn-title-field label { display: flex; flex-direction: column; gap: 6px; font-weight: 600; }
 .cn-title-field .cn-event-title { box-sizing: border-box; width: 100%; min-height: 40px; padding: 8px 10px; font-size: 1rem; }
 .cn-modal-field input { width: 100%; }
+/* The details dialog widens with the window; phones keep Obsidian's full-screen modal. */
+body:not(.is-phone) .modal.cn-event-modal { width: min(1100px, 80vw); min-width: min(560px, 94vw); max-width: 94vw; }
+.cn-event-modal .modal-content { container-type: inline-size; }
+.cn-title-field .cn-field-label { font-weight: 600; }
+.cn-title-field .cn-event-title-link, .cn-title-field .cn-event-title-static { display: block; height: auto; text-align: left; white-space: normal; overflow-wrap: anywhere; border: 1px solid var(--background-modifier-border); border-radius: var(--input-radius, 5px); background: var(--background-primary-alt); box-shadow: none; color: var(--text-normal); font-weight: var(--font-normal); }
+.cn-title-field .cn-event-title-link { cursor: pointer; }
+.cn-title-field .cn-event-title-link:hover, .cn-title-field .cn-event-title-link:focus-visible { border-color: var(--interactive-accent); color: var(--text-accent); text-decoration: underline; }
+.cn-note-edit { align-self: flex-start; margin-top: -2px; font-size: var(--font-ui-smaller); color: var(--text-accent); text-decoration: none; }
+.cn-note-edit:hover, .cn-note-edit:focus-visible { text-decoration: underline; }
+.cn-time-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 12px; align-items: end; margin: 14px 0; }
+.cn-time-row .cn-modal-field { margin: 0; }
+.cn-all-day-field { align-items: center; padding-bottom: 6px; white-space: nowrap; }
+@container (max-width: 480px) {
+  .cn-time-row { grid-template-columns: minmax(0, 1fr); }
+  .cn-all-day-field { flex-direction: row; justify-content: space-between; padding-bottom: 0; }
+}
 .cn-event-original { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 4px 12px; margin: 10px 0; }
 .cn-event-original dt { color: var(--text-muted); font-size: var(--font-ui-small); }
 .cn-event-original dd { margin: 0; max-height: 12em; overflow-y: auto; white-space: pre-wrap; overflow-wrap: anywhere; user-select: text; }

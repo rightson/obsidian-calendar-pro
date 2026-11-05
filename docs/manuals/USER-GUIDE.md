@@ -6,7 +6,7 @@ Open the calendar from the ribbon icon or the command palette. Create a local ev
 
 ## Event details
 
-Click an event to open its details: title, start and end, all day, and a preview of its Event Note, which opens on the left, on the right, or in a new tab. To use a different note for an event, open its details from the right-click menu or from **⋯** and choose **Change…** beside Event Note: pick any Markdown note or type a new path. The previous Event Note stays in the Vault as an ordinary note with its text intact.
+Click an event to open its details: title, start, end and all day, and a preview of its Event Note, which opens on the left, on the right, or in a new tab. Clicking the title also opens the Event Note in a new tab, where you edit the title. To use a different note for an event, open its details from the right-click menu or from **⋯** and click **Edit** under the title: pick any Markdown note or type a new path. The dialog grows wider with the window. The previous Event Note stays in the Vault as an ordinary note with its text intact.
 
 ![Event details dialog with start and end times and an Event Note preview](../images/event-details.png)
 

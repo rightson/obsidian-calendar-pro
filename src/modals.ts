@@ -1,4 +1,4 @@
-import { Component, MarkdownRenderer, Modal, Notice, Setting, SuggestModal, TFile, normalizePath, setIcon, type App } from 'obsidian';
+import { Component, MarkdownRenderer, Modal, Notice, Setting, SuggestModal, TFile, ToggleComponent, normalizePath, setIcon, type App } from 'obsidian';
 import moment from 'moment-timezone';
 import type { CalendarEvent, Interval, PluginSettings } from './types';
 import type { ChangeHistoryEntry } from './history';
@@ -48,30 +48,30 @@ export class EventModal extends Modal {
   }
 
   onOpen(): void {
+    this.modalEl.addClass('cn-event-modal');
     this.titleEl.setText('Event details');
     const root = this.contentEl;
     root.empty();
-    const titleField = root.createDiv({ cls: 'cn-modal-field cn-title-field' });
-    const titleLabel = titleField.createEl('label', { text: 'Title' });
-    const titleInput = titleLabel.createEl('input', { type: 'text', cls: 'cn-event-title', attr: { placeholder: 'Event title' } });
-    titleInput.value = this.titleValue;
-    titleInput.disabled = !!this.event;
-    titleInput.addEventListener('input', () => { this.titleValue = titleInput.value; });
-    if (this.event) titleField.createEl('small', { text: 'Edit the title in the Event Note.', cls: 'cn-muted' });
+    this.renderTitle(root);
     if (this.event) this.renderOriginal(root, this.event);
-    let startInput: HTMLInputElement;
-    let endInput: HTMLInputElement;
+    const times = root.createDiv({ cls: 'cn-time-row' });
     const makeInput = (label: string, value: string, onChange: (value: string) => void) => {
-      const row = root.createDiv({ cls: 'cn-modal-field' });
-      row.createEl('label', { text: label });
-      const input = row.createEl('input', { type: this.allDay ? 'date' : 'datetime-local' });
+      const field = times.createEl('label', { cls: 'cn-modal-field cn-time-field' });
+      const labelEl = field.createSpan({ text: label });
+      const input = field.createEl('input', { type: this.allDay ? 'date' : 'datetime-local' });
       input.value = value;
       input.addEventListener('change', () => onChange(input.value));
-      return input;
+      return { input, labelEl };
     };
-    startInput = makeInput('Start', this.startValue, value => { this.startValue = value; });
-    endInput = makeInput('End (exclusive for all-day events)', this.endValue, value => { this.endValue = value; });
-    new Setting(root).setName('All day').addToggle(toggle => toggle.setValue(this.allDay).onChange(value => {
+    const endLabel = (allDay: boolean) => allDay ? 'End (exclusive)' : 'End';
+    const start = makeInput('Start', this.startValue, value => { this.startValue = value; });
+    const end = makeInput(endLabel(this.allDay), this.endValue, value => { this.endValue = value; });
+    end.labelEl.setAttr('title', 'For all-day events, the day after the last day');
+    const allDayField = times.createDiv({ cls: 'cn-modal-field cn-all-day-field' });
+    allDayField.createSpan({ text: 'All day' });
+    const toggle = new ToggleComponent(allDayField).setValue(this.allDay);
+    toggle.toggleEl.querySelector('input')?.setAttr('aria-label', 'All day');
+    toggle.onChange(value => {
       this.startValue = this.startValue.slice(0, 10);
       this.endValue = this.endValue.slice(0, 10);
       if (value && this.endValue <= this.startValue) {
@@ -81,16 +81,17 @@ export class EventModal extends Modal {
         this.endValue += 'T10:00';
       }
       this.allDay = value;
-      startInput.type = value ? 'date' : 'datetime-local';
-      endInput.type = value ? 'date' : 'datetime-local';
-      startInput.value = this.startValue;
-      endInput.value = this.endValue;
-    }));
+      start.input.type = value ? 'date' : 'datetime-local';
+      end.input.type = value ? 'date' : 'datetime-local';
+      start.input.value = this.startValue;
+      end.input.value = this.endValue;
+      end.labelEl.setText(endLabel(value));
+    });
     if (this.note) this.renderNote(root, this.note);
     this.errorEl = root.createDiv({ cls: 'cn-validation', attr: { role: 'alert' } });
     const actions = root.createDiv({ cls: 'cn-modal-actions' });
     actions.createEl('button', { text: 'Cancel' }).addEventListener('click', () => this.close());
-    const save = actions.createEl('button', { text: 'Save event', cls: 'mod-cta' });
+    const save = actions.createEl('button', { text: 'Save', cls: 'mod-cta' });
     save.addEventListener('click', () => { void (async () => {
       try {
         const title = this.titleValue.trim();
@@ -104,7 +105,6 @@ export class EventModal extends Modal {
         save.disabled = false;
       }
     })(); });
-    if (!this.event) titleInput.focus();
   }
 
   onClose(): void {
@@ -113,14 +113,42 @@ export class EventModal extends Modal {
     this.contentEl.empty();
   }
 
+  /**
+   * The title. An existing event's title comes from its Event Note, so it shows read-only and opens
+   * that note in a new tab when clicked; the small Edit link below it binds the event to another note.
+   */
+  private renderTitle(root: HTMLElement): void {
+    const field = root.createDiv({ cls: 'cn-modal-field cn-title-field' });
+    const open = this.note?.open;
+    if (this.event) {
+      field.createSpan({ text: 'Title', cls: 'cn-field-label' });
+      if (open) {
+        const link = field.createEl('button', { cls: 'cn-event-title cn-event-title-link', text: this.titleValue,
+          attr: { type: 'button', title: 'Open the Event Note in a new tab' } });
+        link.addEventListener('click', () => { this.close(); open('tab'); });
+      } else {
+        field.createDiv({ cls: 'cn-event-title cn-event-title-static', text: this.titleValue });
+      }
+    } else {
+      const label = field.createEl('label', { text: 'Title' });
+      const input = label.createEl('input', { type: 'text', cls: 'cn-event-title', attr: { placeholder: 'Event title' } });
+      input.value = this.titleValue;
+      input.addEventListener('input', () => { this.titleValue = input.value; });
+      input.focus();
+    }
+    const note = this.note;
+    if (!note) return;
+    const edit = field.createEl('a', { text: 'Edit', cls: 'cn-note-edit',
+      attr: { href: '#', role: 'button', title: 'Bind the event to any note, or a new one' } });
+    edit.addEventListener('click', event => { event.preventDefault(); this.close(); note.change(); });
+  }
+
   /** The Event Note: which note holds the event, what it says, and where to open it. */
   private renderNote(root: HTMLElement, note: EventNoteControls): void {
     this.previewOwner.load();
     let path = note.path;
     const section = root.createDiv({ cls: 'cn-event-note' });
     const heading = new Setting(section).setName('Event Note').setDesc(path ?? 'Not created yet');
-    heading.addButton(button => button.setButtonText('Change…').setTooltip('Bind the event to any note, or a new one')
-      .onClick(() => { this.close(); note.change(); }));
     const preview = section.createDiv({ cls: 'cn-note-preview' });
     void this.showPreview(preview, path);
     if (note.candidates && note.bind) {

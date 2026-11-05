@@ -11,6 +11,26 @@ export const AGENDA_MIN_BLOCK_MINUTES = 20;
 export const AGENDA_LIST_DAYS = 14;
 const DAY_MINUTES = 24 * 60;
 
+/** Fewest and most hours of the next day the timeline previews below midnight. */
+export const AGENDA_NEXT_DAY_MIN_HOURS = 3;
+export const AGENDA_NEXT_DAY_MAX_HOURS = 12;
+
+/**
+ * Hours of the next day to preview below today's timeline, or 0 for none.
+ * The preview appears once centring the current time would reach past
+ * midnight, and is long enough to keep the current time centred until then.
+ */
+export function nextDayPreviewHours(minute: number, viewHeight: number, hourHeight = AGENDA_HOUR_HEIGHT): number {
+  const half = Math.max(0, viewHeight) / 2 / hourHeight;
+  const hours = Math.min(AGENDA_NEXT_DAY_MAX_HOURS, Math.max(AGENDA_NEXT_DAY_MIN_HOURS, Math.ceil(half) + 1));
+  return minute >= DAY_MINUTES - hours * 60 ? hours : 0;
+}
+
+/** The scroll offset that puts `minute` in the middle of a view `viewHeight` tall over a grid starting at `gridTop`. */
+export function centeredScrollTop(minute: number, viewHeight: number, gridTop = 0, hourHeight = AGENDA_HOUR_HEIGHT): number {
+  return Math.max(0, gridTop + minute / 60 * hourHeight - viewHeight / 2);
+}
+
 /** A timed event placed on one day of the timeline, clipped to that day. */
 export interface PlacedEvent {
   event: CalendarEvent;

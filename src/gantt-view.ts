@@ -5,7 +5,7 @@ import { hasGanttKey } from './project-edit';
 import { confirmAction } from './project-writer';
 import { hintLabel, taskHints } from './task-hints';
 import {
-  canStep, demoteLine, isUnscheduled, linkedTaskNote, parseAssigneeInput, parseDateInput, parseProject, plainTitle, promoteLine,
+  canStep, demoteLine, isRemark, isUnscheduled, linkedTaskNote, parseAssigneeInput, parseDateInput, parseProject, plainTitle, promoteLine,
   PROGRESS_STEPS, retitleLine, scheduleFromCell, stepProgress, taskNoteName, upgradeAssignee, type Project, type TaskNode,
 } from './tasks';
 import type CalendarNotePlugin from './main';
@@ -18,7 +18,7 @@ type Mode = 'table' | 'chart';
 type Parsed<T> = { value: T } | { error: string };
 
 const LABEL_WIDTH = 320;
-const ZOOMS: [number, string][] = [[32, 'Days'], [16, 'Weeks'], [6, 'Months']];
+const ZOOMS: [number, string][] = [[24, 'Days'], [12, 'Weeks'], [5, 'Months']];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 const weekday = (date: string) => (new Date(`${date}T00:00:00Z`).getUTCDay() + 6) % 7;
@@ -338,7 +338,7 @@ export class GanttView extends ItemView {
   }
 
   private renderActions(cell: HTMLElement, node: TaskNode): void {
-    if (!node.summary) {
+    if (!node.summary && !isRemark(node)) {
       const current = node.isTask ? node.progress ?? 0 : 0;
       for (const step of [...PROGRESS_STEPS, 'done'] as const) {
         const button = cell.createEl('button', { cls: 'cp-step', text: step === 'done' ? 'Done' : `+${step}` });
@@ -478,7 +478,7 @@ export class GanttView extends ItemView {
         const month = monthRow.createDiv({ cls: 'cp-scale-month', text: `${MONTHS[Number(date.slice(5, 7)) - 1]} ${date.slice(0, 4)}` });
         month.setCssProps({ left: `${index * dw}px` });
       }
-      const label = dw >= 16 ? String(Number(date.slice(8))) : dw >= 6 && weekday(date) === 0 ? String(Number(date.slice(8))) : '';
+      const label = dw >= 12 ? String(Number(date.slice(8))) : dw >= 6 && weekday(date) === 0 ? String(Number(date.slice(8))) : '';
       const cell = dayRow.createDiv({ cls: 'cp-scale-day', text: label });
       cell.toggleClass('is-weekend', weekday(date) >= 5);
       cell.toggleClass('is-today', date === this.today);

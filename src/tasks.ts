@@ -137,9 +137,14 @@ export function taskLeaves(node: TaskNode): TaskNode[] {
   return node.children.flatMap(child => child.summary ? taskLeaves(child) : child.isTask ? [child] : []);
 }
 
-/** A leaf without any date, shown in the chart's unscheduled area. */
+/** A plain row under a task that is not a summary, such as a note about that task. */
+export function isRemark(node: TaskNode): boolean {
+  return !node.isTask && !!node.parent && (node.parent.isTask && !node.parent.summary || isRemark(node.parent));
+}
+
+/** A leaf without any date, shown in the chart's unscheduled area; remarks are not tasks to schedule. */
 export function isUnscheduled(node: TaskNode): boolean {
-  return !node.summary && !node.start && !node.end && !node.due && !node.milestone;
+  return !node.summary && !isRemark(node) && !node.start && !node.end && !node.due && !node.milestone;
 }
 
 export const PROGRESS_STEPS = [10, 20] as const;

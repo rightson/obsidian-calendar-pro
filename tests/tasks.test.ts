@@ -44,6 +44,8 @@ test('plain text rows are rows, not tasks', () => {
   assert.equal(byTitle(nodes, '前端 （跟 AAA 確認）').isTask, false);
   assert.equal(isUnscheduled(byTitle(nodes, '前端 （跟 AAA 確認）')), true);
   assert.equal(isUnscheduled(byTitle(nodes, '社群貼文 下週一前')), true);
+  // A remark under a task is not something to schedule.
+  assert.equal(isUnscheduled(note), false);
 });
 
 test('irregular indentation and headings build the tree', () => {

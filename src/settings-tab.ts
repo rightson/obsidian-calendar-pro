@@ -113,6 +113,8 @@ export class CalendarNoteSettingTab extends PluginSettingTab {
     new Setting(root).setName('Place below the file explorer')
       .setDesc('Moves the month calendar to the left sidebar, under the file explorer.')
       .addButton(button => button.setButtonText('Move').onClick(() => void this.plugin.openMonths('below-explorer')));
+    new Setting(root).setName('Events sidebar').setHeading();
+    this.toggle(root, 'Keep the time of day when changing dates', 'Another date opens at the hours you were looking at. Turn it off to open each date at its first event (or 08:00). Today always opens at the current time.', 'agendaKeepTime');
     new Setting(root).setName('Subscriptions').setHeading();
     this.number(root, 'Refresh interval (minutes)', 'syncIntervalMinutes');
     for (const source of settings.sources) this.sourceSetting(root, source);
@@ -189,7 +191,7 @@ export class CalendarNoteSettingTab extends PluginSettingTab {
       input.inputEl.addEventListener('keydown', e => { if (e.key === 'Enter') input.inputEl.blur(); });
     });
   }
-  private toggle(root: HTMLElement, name: string, description: string, key: 'moveEventNotes'): void {
+  private toggle(root: HTMLElement, name: string, description: string, key: 'moveEventNotes' | 'agendaKeepTime'): void {
     new Setting(root).setName(name).setDesc(description).addToggle(toggle => {
       toggle.setValue(this.plugin.store.state.settings[key]).onChange(value => {
         void this.save(next => { next[key] = value; });

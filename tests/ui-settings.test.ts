@@ -40,3 +40,10 @@ test('the minimum month count is a whole number from 1 to 12, else 3', async () 
   assert.equal(normalizePluginSettings({ monthsMinimum: 12 }).monthsMinimum, 12);
   for (const bad of [0, 13, 2.5, '4', null]) assert.equal(normalizePluginSettings({ monthsMinimum: bad }).monthsMinimum, 3);
 });
+
+test('the events sidebar keeps the time of day by default', async () => {
+  const { normalizePluginSettings } = await import('../src/settings');
+  assert.equal(normalizePluginSettings({}).agendaKeepTime, true);
+  assert.equal(normalizePluginSettings({ agendaKeepTime: false }).agendaKeepTime, false);
+  assert.equal(normalizePluginSettings({ agendaKeepTime: 'no' }).agendaKeepTime, true);
+});

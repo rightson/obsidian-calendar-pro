@@ -11,9 +11,15 @@ export const AGENDA_MIN_BLOCK_MINUTES = 20;
 export const AGENDA_LIST_DAYS = 14;
 const DAY_MINUTES = 24 * 60;
 
-/** Fewest and most hours of the next day the timeline previews below midnight. */
+/** Fewest and most hours of the next or previous day the timeline previews beyond midnight. */
 export const AGENDA_NEXT_DAY_MIN_HOURS = 3;
 export const AGENDA_NEXT_DAY_MAX_HOURS = 12;
+
+/** Hours of preview that keep `minute` centred in a view `viewHeight` tall. */
+function previewSpan(viewHeight: number, hourHeight: number): number {
+  const half = Math.max(0, viewHeight) / 2 / hourHeight;
+  return Math.min(AGENDA_NEXT_DAY_MAX_HOURS, Math.max(AGENDA_NEXT_DAY_MIN_HOURS, Math.ceil(half) + 1));
+}
 
 /**
  * Hours of the next day to preview below today's timeline, or 0 for none.
@@ -21,9 +27,14 @@ export const AGENDA_NEXT_DAY_MAX_HOURS = 12;
  * midnight, and is long enough to keep the current time centred until then.
  */
 export function nextDayPreviewHours(minute: number, viewHeight: number, hourHeight = AGENDA_HOUR_HEIGHT): number {
-  const half = Math.max(0, viewHeight) / 2 / hourHeight;
-  const hours = Math.min(AGENDA_NEXT_DAY_MAX_HOURS, Math.max(AGENDA_NEXT_DAY_MIN_HOURS, Math.ceil(half) + 1));
+  const hours = previewSpan(viewHeight, hourHeight);
   return minute >= DAY_MINUTES - hours * 60 ? hours : 0;
+}
+
+/** Hours of the previous day to preview above today's timeline just after midnight, or 0 for none. */
+export function previousDayPreviewHours(minute: number, viewHeight: number, hourHeight = AGENDA_HOUR_HEIGHT): number {
+  const hours = previewSpan(viewHeight, hourHeight);
+  return minute < hours * 60 ? hours : 0;
 }
 
 /** The scroll offset that puts `minute` in the middle of a view `viewHeight` tall over a grid starting at `gridTop`. */

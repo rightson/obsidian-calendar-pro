@@ -1,5 +1,5 @@
 import { ItemView, Menu, Notice, TFile, getIcon, normalizePath, setIcon, type ViewStateResult, type WorkspaceLeaf } from 'obsidian';
-import { addDays, daysBetween, formatDate, remarkIssue, updateTaskLine, type Assignee, type FieldChange } from './annotation';
+import { addDays, assigneeText, daysBetween, formatDate, personName, remarkIssue, updateTaskLine, type Assignee, type FieldChange } from './annotation';
 import { dateAt } from './date';
 import { hasGanttKey } from './project-edit';
 import { confirmAction } from './project-writer';
@@ -23,7 +23,6 @@ const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', '
 
 const weekday = (date: string) => (new Date(`${date}T00:00:00Z`).getUTCDay() + 6) % 7;
 const hue = (name: string) => [...name].reduce((sum, char) => (sum * 31 + char.codePointAt(0)!) % 360, 7);
-const assigneeLabel = (assignee: Assignee) => assignee.style === 'at' ? `@${assignee.name}` : `[[${assignee.name}${assignee.alias ? `|${assignee.alias}` : ''}]]`;
 
 /**
  * One Project Note as a WBS table or a Gantt chart. Everything shown is read
@@ -145,7 +144,7 @@ export class GanttView extends ItemView {
       };
       select('Zoom', ZOOMS.map(([width, text]) => [String(width), text]), String(this.dayWidth), value => { this.dayWidth = Number(value); this.scrolledToToday = false; this.render(false); });
       select('Colour bars', [['none', 'One colour'], ['assignee', 'Colour by assignee']], this.colorBy, value => { this.colorBy = value as 'none' | 'assignee'; this.render(); });
-      const names = [...new Set((this.project?.nodes ?? []).flatMap(node => node.assignees.map(assignee => assignee.name)))].sort();
+      const names = [...new Set((this.project?.nodes ?? []).flatMap(node => node.assignees.map(personName)))].sort();
       select('Show assignee', [['', 'Everyone'], ...names.map(name => [name, name] as [string, string])], this.filter, value => { this.filter = value; this.render(); });
     }
     if (this.file && this.project && !hasGanttKey(this.content)) {
@@ -170,7 +169,7 @@ export class GanttView extends ItemView {
 
   private matches(node: TaskNode): boolean {
     if (!this.filter || this.mode !== 'chart') return true;
-    return node.assignees.some(assignee => assignee.name === this.filter) || node.children.some(child => this.matches(child));
+    return node.assignees.some(assignee => personName(assignee) === this.filter) || node.children.some(child => this.matches(child));
   }
 
   private visibleNodes(): TaskNode[] {
@@ -317,22 +316,26 @@ export class GanttView extends ItemView {
 
   private renderAssigneeCell(cell: HTMLElement, node: TaskNode): void {
     const own = node.own.assignees;
-    this.input<Assignee[]>(cell, own.map(assigneeLabel).join(', '), 'Assignee', text => {
+    this.input<Assignee[]>(cell, own.map(assigneeText).join(', '), 'Assignee', text => {
       const value = parseAssigneeInput(text);
-      return value ? { value } : { error: 'Use @name or [[name]], separated by commas.' };
+      return value ? { value } : { error: 'Use @name, @[[name]], or [[@name]], separated by commas.' };
     }, value => this.change(node, { assignees: value }, value.length ? `Assigned ${this.name(node)}.` : `Cleared the assignee of ${this.name(node)}.`), {
-      placeholder: node.inherited ? `${node.assignees.map(assignee => assignee.name).join(', ')} (inherited)` : '',
+      placeholder: node.inherited ? `${node.assignees.map(personName).join(', ')} (inherited)` : '',
     });
     for (const assignee of node.assignees) {
       if (assignee.style === 'link' && !this.app.metadataCache.getFirstLinkpathDest(assignee.name, this.file?.path ?? '')) {
-        const add = cell.createEl('button', { cls: 'cp-mini-button', text: '＋', attr: { 'aria-label': `Create a note for ${assignee.name}` } });
+        const add = cell.createEl('button', { cls: 'cp-mini-button', text: '＋', attr: { 'aria-label': `Create a note for ${personName(assignee)}` } });
         add.title = `Create ${this.personPath(assignee.name)}`;
         add.addEventListener('click', () => void this.createPerson(assignee.name));
       }
       if (assignee.style === 'at' && !node.inherited) {
-        const upgrade = cell.createEl('button', { cls: 'cp-mini-button', text: '[[ ]]', attr: { 'aria-label': `Link @${assignee.name} as [[${assignee.name}]]` } });
-        upgrade.title = `Change @${assignee.name} to by [[${assignee.name}]]`;
-        upgrade.addEventListener('click', () => void this.change(node, { assignees: upgradeAssignee(own, assignee.name) }, `Linked ${assignee.name}.`));
+        // Follow the Vault: link `@name` notes as [[@name]], others as @[[name]].
+        const atNote = `@${assignee.name}`;
+        const target = this.app.metadataCache.getFirstLinkpathDest(atNote, this.file?.path ?? '') ? atNote : assignee.name;
+        const text = assigneeText({ name: target, style: 'link' });
+        const upgrade = cell.createEl('button', { cls: 'cp-mini-button', text: '[[ ]]', attr: { 'aria-label': `Link @${assignee.name} as ${text}` } });
+        upgrade.title = `Change @${assignee.name} to ${text}`;
+        upgrade.addEventListener('click', () => void this.change(node, { assignees: upgradeAssignee(own, assignee.name, target) }, `Linked ${assignee.name}.`));
       }
     }
   }
@@ -510,7 +513,8 @@ export class GanttView extends ItemView {
   }
 
   private color(node: TaskNode): string | undefined {
-    const name = node.assignees[0]?.name;
+    const first = node.assignees[0];
+    const name = first && personName(first);
     return this.colorBy === 'assignee' && name ? `hsl(${hue(name)} 55% 48%)` : undefined;
   }
 

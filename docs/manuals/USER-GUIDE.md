@@ -99,7 +99,7 @@ A task's dates, progress, and people go in brackets at the end of its line:
     - 視覺稿 (30%, 11/4-11/10, @小王)
       - 補充說明：配色待定
   - 開發
-    - API (11/9-11/22, by [[AAA]])
+    - API (11/9-11/22, @[[AAA]])
     - 前端 （跟 AAA 確認）
 - 行銷
   - 發新聞稿 (◆ 11/30)
@@ -112,13 +112,13 @@ A task's dates, progress, and people go in brackets at the end of its line:
 | `11/6` or `2026-11-06` | A deadline (month first). |
 | `11/1-11/6` (also `–` or `~`) | Start and end, both days included. |
 | `◆ 11/30` | A milestone on that day. |
-| `@小王` or `by [[小王]]` | Who does it. Rows below inherit it until one names someone else. |
+| `@小王` or `@[[小王]]` | Who does it; `@[[小王]]` links to the person's note. Rows below inherit it until one names someone else. The earlier `by [[小王]]` is still read. |
 
 Brackets may be half-width `( )` or full-width `（ ）`, and the parts may be separated by `,`, `，`, or `、`. Dates without a year are this year; a range whose end comes before its start ends in the next year. The brackets count only when every part is one of the above, so `（跟 AAA 確認）` stays your own remark, and text outside the last brackets on the line is never read. A ⚠ in the table marks brackets that mix both, such as `(30%, 待確認)`.
 
 A row with tasks below it is a summary: its dates run from the earliest start to the latest end below it, and its progress is weighted by days (a task with a start and end counts its days; a deadline-only or unscheduled task counts as one day). A date written on the summary itself is that branch's target; when the tasks below end later, the target turns red and says why. A plain line without brackets is a row without dates, and a plain line under a task is a remark about it.
 
-**Table** lists the tree with WBS, Task, %, Start, End, and Assignee. Edit any cell and press Enter; the change is written into that line's brackets, keeping how you wrote them, and adds the brackets when the line has none, as in `(30%, 11/1-11/6)`. A cell it cannot read stays unchanged and says what it expects. **+10**, **+20**, and **Done** raise a task's progress (a button that would pass 100% is disabled), and every change shows a notice with **Undo**. The ⋯ menu opens the line in the note and can **Promote to Task Note**, replacing the title with a link to a new note beside the project while dates, progress, and subtasks stay in the project; **Demote to text** turns it back and offers to trash the Task Note if it is still empty. A `[[name]]` assignee without a note gets a **＋** button that creates it in the **People folder** (Settings → Gantt, `People/` by default), and **[[ ]]** next to `@name` changes it to `by [[name]]`. Words such as 今天, 明天, 後天, 本週五, 下週一, 週三前, 月底, 月初, and 20號前 show a **Due …?** chip, and 找小王 shows **Assign to 小王?**; nothing is written until you click one.
+**Table** lists the tree with WBS, Task, %, Start, End, and Assignee. Edit any cell and press Enter; the change is written into that line's brackets, keeping how you wrote them, and adds the brackets when the line has none, as in `(30%, 11/1-11/6)`. A cell it cannot read stays unchanged and says what it expects. **+10**, **+20**, and **Done** raise a task's progress (a button that would pass 100% is disabled), and every change shows a notice with **Undo**. The ⋯ menu opens the line in the note and can **Promote to Task Note**, replacing the title with a link to a new note beside the project while dates, progress, and subtasks stay in the project; **Demote to text** turns it back and offers to trash the Task Note if it is still empty. A `[[name]]` assignee without a note gets a **＋** button that creates it in the **People folder** (Settings → Gantt, `People/` by default), and **[[ ]]** next to `@name` changes it to `@[[name]]`. Words such as 今天, 明天, 後天, 本週五, 下週一, 週三前, 月底, 月初, and 20號前 show a **Due …?** chip, and 找小王 shows **Assign to 小王?**; nothing is written until you click one.
 
 **Chart** shows the same tree beside a timeline with a red line for today. Bars fill with progress; drag a bar to move it or drag either end to change it. Summaries show a thin bar and their target, deadlines a marker with a dashed line from today, and milestones a diamond with a vertical line. Rows without dates wait under **Unscheduled**; drag one onto the timeline to give it that day. Colour bars by assignee or show one person's tasks with the controls above the chart. **Note** returns to the Markdown note.
 

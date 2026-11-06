@@ -202,12 +202,12 @@ export function retitleLine(text: string, today: string, title: string): string 
   return renderTaskLine({ ...line, title: clean, ...line.annotation ? {} : { gap: '' } });
 }
 
-/** The node's own assignees as typed in a cell: `@name`, `[[name]]`, `by [[name]]`, or a bare name. */
+/** The node's own assignees as typed in a cell: `@name`, `@[[name]]`, `[[name]]`, `by [[name]]`, or a bare name. */
 export function parseAssigneeInput(input: string): Assignee[] | undefined {
   const items = input.split(/\s*[,，、]\s*/).map(item => item.trim()).filter(Boolean);
   const result: Assignee[] = [];
   for (const item of items) {
-    const link = /^(?:by\s+)?\[\[([^\][|#^]+)(?:\|([^\]]+))?\]\]$/.exec(item);
+    const link = /^(?:@|by\s+)?\[\[([^\][|#^]+)(?:\|([^\]]+))?\]\]$/.exec(item);
     if (link) { result.push({ name: link[1].trim(), style: 'link', ...link[2] ? { alias: link[2] } : {} }); continue; }
     const name = item.replace(/^@/, '');
     if (!/^[^\s@,，、()（）[\]]+$/.test(name)) return undefined;
@@ -216,7 +216,7 @@ export function parseAssigneeInput(input: string): Assignee[] | undefined {
   return result;
 }
 
-/** `@name` becomes `by [[name]]`; other assignees are unchanged. */
+/** `@name` becomes `@[[name]]`; other assignees are unchanged. */
 export function upgradeAssignee(assignees: Assignee[], name: string): Assignee[] {
   return assignees.map(assignee => assignee.style === 'at' && assignee.name === name ? { name, style: 'link' } : assignee);
 }

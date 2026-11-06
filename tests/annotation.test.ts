@@ -16,6 +16,9 @@ test('each token kind is recognised', () => {
   assert.deepEqual(parseToken('2026-11-01-2026-11-06', today), { kind: 'range', start: '2026-11-01', end: '2026-11-06', sep: '-', startIso: true, endIso: true });
   assert.deepEqual(parseToken('◆ 11/30', today), { kind: 'milestone', date: '2026-11-30', iso: false, space: ' ' });
   assert.deepEqual(parseToken('@小王', today), { kind: 'assignee', name: '小王', style: 'at' });
+  assert.deepEqual(parseToken('@[[小王]]', today), { kind: 'assignee', name: '小王', style: 'link' });
+  assert.deepEqual(parseToken('@[[People/AAA|AAA]]', today), { kind: 'assignee', name: 'People/AAA', style: 'link', alias: 'AAA' });
+  // The earlier `by [[name]]` form is still read.
   assert.deepEqual(parseToken('by [[小王]]', today), { kind: 'assignee', name: '小王', style: 'link' });
   assert.deepEqual(parseToken('by [[People/AAA|AAA]]', today), { kind: 'assignee', name: 'People/AAA', style: 'link', alias: 'AAA' });
 });
@@ -31,6 +34,7 @@ test('a full annotation with every separator', () => {
     progress: 30, start: '2026-11-04', end: '2026-11-10', assignees: [{ name: '小王', style: 'at' }],
   });
   assert.deepEqual(fields('- 視覺稿 （30％，11/4-11/10、@小王）'), fields('- 視覺稿 (30%, 11/4-11/10, @小王)'));
+  assert.deepEqual(fields('- API (11/9-11/22, @[[AAA]])').assignees, [{ name: 'AAA', style: 'link' }]);
   assert.deepEqual(fields('- API (11/9-11/22, by [[AAA]])').assignees, [{ name: 'AAA', style: 'link' }]);
   assert.equal(fields('- 發新聞稿 (◆ 11/30)').milestone, '2026-11-30');
   assert.equal(fields('## 設計 (11/20)').due, '2026-11-20');
@@ -101,7 +105,9 @@ test('writing back changes only the touched token and keeps the line format', ()
   assert.equal(updateTaskLine('- A (11/6)', { schedule: { due: '2027-02-01' } }, today), '- A (2027-02-01)');
   assert.equal(updateTaskLine('- A (11/6)', { schedule: { start: '2026-11-01', end: '2026-11-06' } }, today), '- A (11/1-11/6)');
   assert.equal(updateTaskLine('- A (◆ 11/30)', { milestone: '2026-12-01' }, today), '- A (◆ 12/1)');
-  assert.equal(updateTaskLine('- A (@小王)', { assignees: [{ name: '小王', style: 'link' }] }, today), '- A (by [[小王]])');
+  assert.equal(updateTaskLine('- A (@小王)', { assignees: [{ name: '小王', style: 'link' }] }, today), '- A (@[[小王]])');
+  // A legacy `by [[name]]` is kept as written when another field changes.
+  assert.equal(updateTaskLine('- A (11/6, by [[AAA]])', { progress: 20, assignees: [{ name: 'AAA', style: 'link' }] }, today), '- A (11/6, by [[AAA]], 20%)');
 });
 
 test('a line without an annotation gains (30%, 11/1-11/6); 0% is left out', () => {

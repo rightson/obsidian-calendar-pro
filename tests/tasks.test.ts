@@ -13,7 +13,7 @@ gantt: true
     - 視覺稿 (30%, 11/4-11/10, @小王)
       - 補充說明：配色待定
   - 開發
-    - API (11/9-11/22, by [[AAA]])
+    - API (11/9-11/22, @[[AAA]])
     - 前端 （跟 AAA 確認）
 - 行銷
   - 發新聞稿 (◆ 11/30)
@@ -167,8 +167,8 @@ test('promote and demote replace only the title', () => {
 });
 
 test('assignee cells and the @ to [[ ]] upgrade', () => {
-  assert.deepEqual(parseAssigneeInput('小王, by [[AAA]]、[[B|Bee]]'), [
-    { name: '小王', style: 'at' }, { name: 'AAA', style: 'link' }, { name: 'B', style: 'link', alias: 'Bee' }]);
+  assert.deepEqual(parseAssigneeInput('小王, @[[AAA]]、[[B|Bee]], by [[C]]'), [
+    { name: '小王', style: 'at' }, { name: 'AAA', style: 'link' }, { name: 'B', style: 'link', alias: 'Bee' }, { name: 'C', style: 'link' }]);
   assert.deepEqual(parseAssigneeInput(''), []);
   assert.equal(parseAssigneeInput('two words'), undefined);
   assert.deepEqual(upgradeAssignee([{ name: '小王', style: 'at' }, { name: 'B', style: 'at' }], '小王'),

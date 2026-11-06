@@ -124,7 +124,7 @@ export function parseToken(text: string, today: string): Token | undefined {
   if (single) return { kind: 'due', date: single.date, iso: single.iso };
   const at = /^@([^\s@,，、()（）[\]]+)$/.exec(text);
   if (at) return { kind: 'assignee', name: at[1], style: 'at' };
-  const link = /^by\s+\[\[([^\][|#^]+)(?:\|([^\]]+))?\]\]$/.exec(text);
+  const link = /^(?:@|by\s+)\[\[([^\][|#^]+)(?:\|([^\]]+))?\]\]$/.exec(text);
   if (link) return { kind: 'assignee', name: link[1].trim(), style: 'link', ...link[2] ? { alias: link[2] } : {} };
   return undefined;
 }
@@ -231,7 +231,7 @@ export function formatDate(date: string, today: string, preferIso = false): stri
 }
 
 export function assigneeText(assignee: Assignee): string {
-  return assignee.style === 'at' ? `@${assignee.name}` : `by [[${assignee.name}${assignee.alias ? `|${assignee.alias}` : ''}]]`;
+  return assignee.style === 'at' ? `@${assignee.name}` : `@[[${assignee.name}${assignee.alias ? `|${assignee.alias}` : ''}]]`;
 }
 
 export type Schedule = { start: string; end: string } | { due: string } | null;

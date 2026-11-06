@@ -331,7 +331,7 @@ export class GanttView extends ItemView {
       }
       if (assignee.style === 'at' && !node.inherited) {
         const upgrade = cell.createEl('button', { cls: 'cp-mini-button', text: '[[ ]]', attr: { 'aria-label': `Link @${assignee.name} as [[${assignee.name}]]` } });
-        upgrade.title = `Change @${assignee.name} to by [[${assignee.name}]]`;
+        upgrade.title = `Change @${assignee.name} to @[[${assignee.name}]]`;
         upgrade.addEventListener('click', () => void this.change(node, { assignees: upgradeAssignee(own, assignee.name) }, `Linked ${assignee.name}.`));
       }
     }

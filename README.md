@@ -1,8 +1,8 @@
-# Calendar Pro
+# Event Notes
 
-A calendar for Obsidian that keeps your events as Markdown notes in your Vault.
+A calendar and Gantt chart for Obsidian that keep your events and project tasks as Markdown notes in your Vault, linked from your Daily Notes.
 
-![Calendar Pro week view with local events, the mini calendar, and the toolbar](docs/images/week-view.png)
+![Event Notes week view with local events, the mini calendar, and the toolbar](docs/images/week-view.png)
 
 ## Highlights
 
@@ -20,11 +20,11 @@ A calendar for Obsidian that keeps your events as Markdown notes in your Vault.
 
 ## Install
 
-Calendar Pro needs desktop **Obsidian 1.14.5 or later**. It is not in the Community Plugins directory yet.
+Event Notes needs desktop **Obsidian 1.14.5 or later**. It is not in the Community Plugins directory yet.
 
-- **ZIP:** [download the latest release](https://github.com/rightson/obsidian-calendar-pro/releases/latest/download/calendar-pro.zip) and follow the [installation guide](docs/manuals/INSTALLATION.md), which also covers updates.
-- **BRAT:** install BRAT from Community Plugins, then add `rightson/obsidian-calendar-pro` as a beta plugin ([BRAT steps](docs/manuals/INSTALLATION.md#install-with-brat)).
-- [All releases](https://github.com/rightson/obsidian-calendar-pro/releases)
+- **ZIP:** [download the latest release](https://github.com/rightson/obsidian-event-notes/releases/latest/download/event-notes.zip) and follow the [installation guide](docs/manuals/INSTALLATION.md), which also covers updates.
+- **BRAT:** install BRAT from Community Plugins, then add `rightson/obsidian-event-notes` as a beta plugin ([BRAT steps](docs/manuals/INSTALLATION.md#install-with-brat)).
+- [All releases](https://github.com/rightson/obsidian-event-notes/releases)
 
 Open the calendar from the ribbon icon or the command palette, then see the [user guide](docs/manuals/USER-GUIDE.md) for clicking, sidebars, subscriptions, holiday calendars, and where Event Notes are saved.
 
@@ -33,13 +33,13 @@ Open the calendar from the ribbon icon or the command palette, then see the [use
 Bug reports and pull requests are welcome. You need Node.js 22 or newer, npm, and `zip`.
 
 ```sh
-git clone https://github.com/rightson/obsidian-calendar-pro.git
-cd obsidian-calendar-pro
+git clone https://github.com/rightson/obsidian-event-notes.git
+cd obsidian-event-notes
 npm ci
 npm run dev -- /absolute/path/to/test-vault
 ```
 
-`npm run dev` rebuilds into the Vault's plugin folder on every save. The path must be absolute and point to a Vault Obsidian has already opened, so it has a `.obsidian` folder. With the [Hot Reload](https://github.com/pjeby/hot-reload) plugin installed there, Obsidian reloads Calendar Pro after each build. Use a test Vault, not your real one.
+`npm run dev` rebuilds into the Vault's plugin folder on every save. The path must be absolute and point to a Vault Obsidian has already opened, so it has a `.obsidian` folder. With the [Hot Reload](https://github.com/pjeby/hot-reload) plugin installed there, Obsidian reloads Event Notes after each build. Use a test Vault, not your real one.
 
 Before opening a pull request:
 
@@ -68,7 +68,7 @@ Where things live:
 Ways to help:
 
 - **Native QA.** Several features have automated coverage only. The [native test checklist](docs/manuals/DEVELOPMENT.md#native-obsidian-test-vault-checklist) lists what to check in a real Obsidian Vault.
-- **Mobile.** Calendar Pro is desktop-only because mobile has not been tested.
+- **Mobile.** The plugin is desktop-only because mobile has not been tested.
 
 See [development and QA](docs/manuals/DEVELOPMENT.md) for the full build, install, and test notes, and [releasing](docs/manuals/RELEASING.md) for packaging a release.
 

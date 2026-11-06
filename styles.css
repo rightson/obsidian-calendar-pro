@@ -1,4 +1,4 @@
-.calendar-pro-view { height: 100%; padding: 0; overflow: hidden; }
+.event-notes-view { height: 100%; padding: 0; overflow: hidden; }
 .cn-shell { position: relative; display: flex; height: 100%; min-height: 0; color: var(--text-normal); }
 .cn-hidden { display: none; }
 .cn-sidebar { width: var(--cn-sidebar-width, auto); box-sizing: border-box; display: flex; flex: 0 0 auto; flex-direction: column; min-width: 0; height: 100%; min-height: 0; padding: 18px 12px; background: var(--background-secondary); overflow: hidden; }
@@ -169,7 +169,7 @@ body:not(.is-phone) .modal.cn-event-modal { width: min(1100px, 80vw); min-width:
 @media (max-width: 550px) { .cn-controls, .cn-navigation { width: 100%; } .cn-controls > * { flex: 1; } .cn-calendar .fc-toolbar-title { font-size: 1rem; } }
 
 /* Holiday calendars: date backgrounds in the main and mini calendars. */
-.calendar-pro-view .fc .cn-holiday-background { opacity: .35; }
+.event-notes-view .fc .cn-holiday-background { opacity: .35; }
 .cn-mini button.is-holiday:not(.is-selected) { background: color-mix(in srgb, var(--cn-holiday-color, transparent) 35%, transparent); }
 .cn-mini button.is-holiday:not(.is-selected):hover, .cn-mini button.is-holiday:not(.is-selected):focus-visible { background: color-mix(in srgb, var(--cn-holiday-color, transparent) 55%, transparent); }
 .cn-mini button.is-holiday-unshaded { text-decoration: underline dotted; text-underline-offset: 3px; }
@@ -291,15 +291,15 @@ body:not(.is-phone) .modal.cn-event-modal { width: min(1100px, 80vw); min-width:
 .cn-agenda-scroll { overflow-anchor: none; }
 
 /* Project tasks in the main calendar: read-only, in a dark palette of their own. */
-.calendar-pro-view .fc-event.cn-task-event { --cn-task-bg: #334155; --cn-task-edge: #1e293b; --cn-task-text: #f1f5f9; background: var(--cn-task-bg); border-color: var(--cn-task-edge); cursor: pointer; }
-.calendar-pro-view .fc-event.cn-task-event .fc-event-main, .calendar-pro-view .fc-event.cn-task-event .fc-event-title { color: var(--cn-task-text); }
-.calendar-pro-view .fc-event.cn-task-event.is-due { --cn-task-bg: #57381f; --cn-task-edge: #3b2414; --cn-task-text: #fdf2e9; }
-.calendar-pro-view .fc-event.cn-task-event.is-milestone { --cn-task-bg: #3f2d63; --cn-task-edge: #2a1d44; --cn-task-text: #f3eefe; }
-.calendar-pro-view .fc-event.cn-task-event.is-done { opacity: .55; }
-.calendar-pro-view .fc-event.cn-task-event.is-done .fc-event-title { text-decoration: line-through; }
-.theme-dark .calendar-pro-view .fc-event.cn-task-event { --cn-task-bg: #475569; --cn-task-edge: #64748b; --cn-task-text: #f8fafc; }
-.theme-dark .calendar-pro-view .fc-event.cn-task-event.is-due { --cn-task-bg: #7c4a24; --cn-task-edge: #9a6034; --cn-task-text: #fff7ed; }
-.theme-dark .calendar-pro-view .fc-event.cn-task-event.is-milestone { --cn-task-bg: #5b4391; --cn-task-edge: #7559b3; --cn-task-text: #faf5ff; }
+.event-notes-view .fc-event.cn-task-event { --cn-task-bg: #334155; --cn-task-edge: #1e293b; --cn-task-text: #f1f5f9; background: var(--cn-task-bg); border-color: var(--cn-task-edge); cursor: pointer; }
+.event-notes-view .fc-event.cn-task-event .fc-event-main, .event-notes-view .fc-event.cn-task-event .fc-event-title { color: var(--cn-task-text); }
+.event-notes-view .fc-event.cn-task-event.is-due { --cn-task-bg: #57381f; --cn-task-edge: #3b2414; --cn-task-text: #fdf2e9; }
+.event-notes-view .fc-event.cn-task-event.is-milestone { --cn-task-bg: #3f2d63; --cn-task-edge: #2a1d44; --cn-task-text: #f3eefe; }
+.event-notes-view .fc-event.cn-task-event.is-done { opacity: .55; }
+.event-notes-view .fc-event.cn-task-event.is-done .fc-event-title { text-decoration: line-through; }
+.theme-dark .event-notes-view .fc-event.cn-task-event { --cn-task-bg: #475569; --cn-task-edge: #64748b; --cn-task-text: #f8fafc; }
+.theme-dark .event-notes-view .fc-event.cn-task-event.is-due { --cn-task-bg: #7c4a24; --cn-task-edge: #9a6034; --cn-task-text: #fff7ed; }
+.theme-dark .event-notes-view .fc-event.cn-task-event.is-milestone { --cn-task-bg: #5b4391; --cn-task-edge: #7559b3; --cn-task-text: #faf5ff; }
 
 /* Gantt view */
 .cp-gantt-view { --cp-weekend: color-mix(in srgb, var(--text-faint) 10%, transparent); --cp-row: 26px; --cp-field: 22px; display: flex; flex-direction: column; padding: 0 !important; overflow: hidden; }

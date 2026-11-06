@@ -70,7 +70,7 @@ export class ProjectWriter {
         const changes: EditorChange[] = lineHunks(before, after).map(hunk => ({
           from: view.editor.offsetToPos(hunk.from), to: view.editor.offsetToPos(hunk.to), text: hunk.text,
         }));
-        if (changes.length) view.editor.transaction({ changes }, 'calendar-pro-gantt');
+        if (changes.length) view.editor.transaction({ changes }, 'event-notes-gantt');
       } else {
         await this.app.vault.process(file, full);
       }
@@ -134,7 +134,7 @@ class RenameModal extends Modal {
     this.modalEl.addClass('cp-gantt-diff-modal');
     this.titleEl.setText('Rename the Task Note?');
     const root = this.contentEl;
-    root.createEl('p', { text: 'This task is a link to its own note, so Calendar Pro renames that note. Obsidian then updates the links to it, including the one in this project.' });
+    root.createEl('p', { text: 'This task is a link to its own note, so renaming the task renames that note. Obsidian then updates the links to it, including the one in this project.' });
     const diff = root.createDiv({ cls: 'cp-gantt-diff' });
     diff.createDiv({ cls: 'cp-diff-line is-removed', text: `- ${this.from}` });
     diff.createDiv({ cls: 'cp-diff-line is-added', text: `+ ${this.to}` });
@@ -170,7 +170,7 @@ export class DiffModal extends Modal {
     this.modalEl.addClass('cp-gantt-diff-modal');
     this.titleEl.setText('Change this note?');
     const root = this.contentEl;
-    root.createEl('p', { text: `Calendar Pro will write this change to ${this.path}. Everything else in the note stays as it is.` });
+    root.createEl('p', { text: `This change will be written to ${this.path}. Everything else in the note stays as it is.` });
     const diff = root.createDiv({ cls: 'cp-gantt-diff' });
     const before = this.before.split('\n');
     for (const hunk of lineHunks(this.before, this.after)) {

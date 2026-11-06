@@ -13,6 +13,7 @@ import { DEFAULT_SETTINGS } from './settings';
 import { normalizeState } from './state';
 import { CalendarStore, RecoveryConflict } from './store';
 import { createObsidianStoreIO } from './vault-adapter';
+import { migrateLegacyData } from './migrate';
 import { EventNoteService, type ChooseNote } from './events';
 import { SubscriptionService } from './subscriptions';
 import { SourceSyncService } from './sync';
@@ -57,14 +58,34 @@ export default class CalendarNotePlugin extends Plugin {
   private ganttActions = new Set<HTMLElement>();
   private projectsScanned = false;
 
+  /** Imports settings from Calendar Pro or Calendar-Note, this plugin's earlier IDs, once. */
+  private async migrateLegacyData(): Promise<string | null> {
+    const pluginsDir = `${this.app.vault.configDir}/plugins`;
+    const ownDir = this.manifest.dir ?? `${pluginsDir}/${this.manifest.id}`;
+    try {
+      const adapter = this.app.vault.adapter;
+      const result = await migrateLegacyData({
+        exists: path => adapter.exists(path),
+        read: path => adapter.read(path),
+        write: (path, data) => adapter.write(path, data),
+        mkdir: path => adapter.mkdir(path),
+      }, pluginsDir, ownDir);
+      return result?.name ?? null;
+    } catch (error) {
+      console.error('Event Notes: could not import earlier settings', error);
+      return null;
+    }
+  }
+
   async onload(): Promise<void> {
+    const migrated = await this.migrateLegacyData();
     const state = normalizeState(await this.loadData(), DEFAULT_SETTINGS);
     this.store = new CalendarStore(createObsidianStoreIO(this.app, this), state);
     this.settingsUpdates = new SettingsUpdateQueue(() => this.store.state.settings, settings => this.persistSettings(settings));
     try { await this.store.recover(); }
     catch {
       this.store.recoveryConflict ??= new RecoveryConflict(['transaction journal']);
-      new Notice('Calendar Pro recovery needs attention. Open the calendar and choose Retry recovery.');
+      new Notice('Event Notes: recovery needs attention. Open the calendar and choose Retry recovery.');
     }
     this.notes = new EventNoteService(this.app, this.store, () => this.store.state.settings);
     this.eventProperties = new EventPropertiesController(
@@ -110,9 +131,9 @@ export default class CalendarNotePlugin extends Plugin {
       this.projectsScanned = true;
       void this.projects.scanAll();
     }));
-    this.registerHoverLinkSource(AGENDA_HOVER_SOURCE, { display: 'Calendar Pro events sidebar', defaultMod: false });
-    this.addRibbonIcon('calendar-days', 'Open Calendar Pro', evt => void this.openCalendar(calendarOpenModeForClick(evt)));
-    this.addRibbonIcon('calendar-clock', 'Open Calendar Pro events sidebar', () => void this.openAgenda());
+    this.registerHoverLinkSource(AGENDA_HOVER_SOURCE, { display: 'Event Notes events sidebar', defaultMod: false });
+    this.addRibbonIcon('calendar-days', 'Open Event Notes calendar', evt => void this.openCalendar(calendarOpenModeForClick(evt)));
+    this.addRibbonIcon('calendar-clock', 'Open Event Notes events sidebar', () => void this.openAgenda());
     this.addCommand({ id: 'open-calendar', name: 'Open calendar in new tab', callback: () => void this.openCalendar('tab') });
     this.addCommand({ id: 'open-calendar-right', name: 'Open calendar in right split', callback: () => void this.openCalendar('right-split') });
     this.addCommand({ id: 'open-months', name: 'Open month calendar in sidebar', callback: () => void this.openMonths() });
@@ -173,6 +194,7 @@ export default class CalendarNotePlugin extends Plugin {
       if (this.store.state.settings.monthsOnStartup) void ensureSidebarView(this.app.workspace, MONTHS_VIEW_TYPE);
       if (this.range) void this.refresh(false);
       if (this.store.recoveryConflict) this.showRecovery();
+      if (migrated) new Notice(`Event Notes imported your ${migrated} settings. Disable and remove ${migrated} so the two plugins don't edit the same notes.`, 0);
     });
   }
 
@@ -334,7 +356,7 @@ export default class CalendarNotePlugin extends Plugin {
   private problemNotice(): void {
     const count = this.notes.problems.length;
     const notice = new Notice(createFragment(fragment => {
-      fragment.appendText(`Calendar Pro found ${count} Event Note ${count === 1 ? 'problem' : 'problems'}. `);
+      fragment.appendText(`Found ${count} Event Note ${count === 1 ? 'problem' : 'problems'}. `);
       fragment.createEl('a', { text: 'Review and fix', href: '#' });
     }), 10000);
     notice.messageEl.addEventListener('click', event => { event.preventDefault(); notice.hide(); this.showProblems(); });
@@ -383,7 +405,7 @@ export default class CalendarNotePlugin extends Plugin {
       if (this.store.recoveryConflict) { this.showRecovery(); throw new Error('Resolve pending recovery before editing notes.'); }
       return await action();
     } catch (error) {
-      new Notice(error instanceof Error ? error.message : 'Calendar Pro action failed.');
+      new Notice(error instanceof Error ? error.message : 'The action failed.');
       return undefined;
     }
   }
@@ -532,7 +554,7 @@ export default class CalendarNotePlugin extends Plugin {
     const conflict = this.store.recoveryConflict;
     if (!conflict) return;
     const modal = new Modal(this.app);
-    modal.titleEl.setText('Calendar Pro recovery needs attention');
+    modal.titleEl.setText('Event Notes: recovery needs attention');
     modal.contentEl.createEl('p', { text: 'These files changed during a pending transaction. Review them, then retry recovery. Calendar edits are paused until recovery succeeds.' });
     const list = modal.contentEl.createEl('ul');
     for (const path of conflict.paths) list.createEl('li', { text: path });
@@ -544,7 +566,7 @@ export default class CalendarNotePlugin extends Plugin {
     try {
       await this.store.recover();
       this.store.recoveryConflict = null;
-      new Notice('Calendar Pro recovery completed.');
+      new Notice('Event Notes: recovery completed.');
       await this.rescan();
       if (this.range) await this.refresh(false);
     } catch { this.showRecovery(); }

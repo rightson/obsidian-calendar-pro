@@ -7,7 +7,7 @@ import { bundleOptions } from './build-options.mjs';
 
 // Rebuilds main.js into a Vault's plugin folder on every source change, and
 // copies manifest.json and styles.css when they change. With the Hot Reload
-// community plugin installed, Obsidian reloads Calendar Pro after each write.
+// community plugin installed, Obsidian reloads Event Notes after each write.
 const root = resolve(import.meta.dirname, '..');
 const given = process.argv[2] ?? process.env.CALENDAR_PRO_VAULT;
 if (!given) {
@@ -21,7 +21,7 @@ const isDirectory = async path => (await stat(path).catch(() => null))?.isDirect
 if (!await isDirectory(join(vault, '.obsidian'))) {
   throw new Error(`Not an Obsidian Vault (no .obsidian folder): ${vault}`);
 }
-const target = join(vault, '.obsidian', 'plugins', 'calendar-pro');
+const target = join(vault, '.obsidian', 'plugins', 'event-notes');
 await mkdir(target, { recursive: true });
 
 const assets = ['manifest.json', 'styles.css'];
@@ -60,7 +60,7 @@ const context = await esbuild.context({
 });
 await context.watch();
 console.log(`Watching src/ → ${target}`);
-console.log('Install the Hot Reload community plugin to reload Calendar Pro after each build; otherwise toggle the plugin off and on. Press Ctrl+C to stop.');
+console.log('Install the Hot Reload community plugin to reload Event Notes after each build; otherwise toggle the plugin off and on. Press Ctrl+C to stop.');
 
 const stop = async () => { await context.dispose(); process.exit(0); };
 process.on('SIGINT', stop);

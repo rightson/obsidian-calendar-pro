@@ -12,7 +12,7 @@ import {
 } from './tasks';
 import type CalendarNotePlugin from './main';
 
-export const GANTT_VIEW_TYPE = 'calendar-pro-gantt';
+export const GANTT_VIEW_TYPE = 'event-notes-gantt';
 /** Lucide renamed its Gantt icon; use whichever this Obsidian has. */
 export const ganttIcon = (): string => getIcon('chart-gantt') ? 'chart-gantt' : getIcon('gantt-chart') ? 'gantt-chart' : 'list-tree';
 

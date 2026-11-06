@@ -1,6 +1,6 @@
 {
-  "name": "calendar-pro",
-  "version": "0.2.1",
+  "name": "event-notes",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
   "engines": { "node": ">=22" },

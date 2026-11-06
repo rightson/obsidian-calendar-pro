@@ -75,6 +75,12 @@ Use the source's displayed diagnostic category to narrow down the problem: body 
 
 Earlier native subscription QA for the committed ICS fixes passed in Obsidian 1.14.5 on macOS using a dedicated test Vault and the then-final ZIP. It verified a public Google Taiwan holiday feed, rapid URL/Enabled changes, URL clearing and blank-source behavior, a controlled UTF-8 BOM feed with a zero-duration and normal event, and sanitized Settings status/cache retention after an injected HTML response. The main-calendar failure banner was not inspected natively and its visibility has source and unit-test coverage only. The current parser compatibility and diagnostics changes described above have not yet received test or native QA results. The user's exact feed remains unverified because its URL was not provided.
 
+### Gantt and Project Notes
+
+`src/annotation.ts` parses and rewrites the trailing bracket on a line; `src/tasks.ts` builds the WBS tree, rollups, milestone and assignee rules, and Task Note text changes; `src/task-hints.ts` resolves the fixed date phrases. These pure modules have automated coverage in `tests/annotation.test.ts` and `tests/tasks.test.ts`, as do the writer's text helpers in `src/project-edit.ts`. `src/gantt-view.ts` is the `calendar-pro-gantt` ItemView, `src/project-writer.ts` serializes writes (editor transaction when the note is open in source mode, `vault.process` otherwise, first-write diff, Undo), and `src/project-index.ts` keeps the dated tasks of notes with a `gantt` key for the main calendar, re-reading a note on each `metadataCache` `changed` event.
+
+The Table and Chart were exercised only in headless Chromium against a stubbed Obsidian API with the example from the user guide: rendering, a late target, bar drag, dropping an unscheduled row, +10, editing an End cell, an unreadable Start cell, and an assignee chip, each checked against the resulting note text. The editor-transaction path, the diff modal, Undo, person and Task Note creation, the title bar button and file menu, and the calendar's task entries and scheduling have not been run in Obsidian.
+
 ## Automated checks and controlled feed testing
 
 Run `npm run typecheck` and `npm test` before packaging. Tests cover date/week rules, provider setting resolution, note/path handling, ICS parsing, subscription refresh behavior, source reconciliation/history, and storage recovery. They run against test adapters and fixtures; they do not prove behavior in an installed Obsidian app.
@@ -119,6 +125,16 @@ The source and automated checks do not count as native-app QA. Continue with the
 - With controlled HTTPS fixtures, test normal refresh, failure/cache retention, recurrence and exceptions, time zones/DST, cancellation/removal, local overrides, history filters/review/retry, and use-latest resolution.
 - Cause safe path conflicts, rewrite or move a managed journal bullet, and simulate restart/interrupted recovery in a disposable Vault. Confirm user text is preserved, unsafe changes require attention, and successful recovery does not duplicate history or links.
 - Inspect plugin unload/reload and app restart for timers, stale views, and pending recovery behavior.
+
+Gantt native checks (not yet run; use a disposable Vault with `npm run dev -- /absolute/path/to/Vault`):
+
+- Paste the user guide's example into a note without properties and open it with the title bar button, **Open current note as Gantt**, and the file menu. Confirm the WBS numbers 1 to 2.2, that 補充說明 and 前端 are plain rows, 設計 shows 51% from 11/2 to 11/10 with target 11/20, and that the first edit shows a diff adding `gantt: true`.
+- Milestone violation: change `設計 (11/20)` to `設計 (11/8)` and confirm the target turns red in Table and Chart with a tooltip naming 11/10. Drag 視覺稿 two days left so it ends 11/8 and confirm the red clears.
+- With the note open in a split, press **+10** on 視覺稿 and check the editor changes in place without moving the cursor, Ctrl/Cmd-Z in the editor reverts it, and the notice's **Undo** reverts it too. Repeat with the note closed.
+- Drag a bar, both ends, the 11/9 API deadline after changing it to a deadline, and the ◆ milestone; drop 社群貼文 from **Unscheduled**. Check each line's text and that full-width brackets and separators are kept.
+- Click the 下週一 chip on 社群貼文, the **Assign to** chip on a line with 找小王, **＋** for `[[AAA]]` (creates `People/AAA.md`), and **[[ ]]** for `@小王`.
+- Promote 視覺稿 to a Task Note, then demote it and confirm the empty note is offered for trash.
+- In the main calendar, confirm the tasks appear in the all-day row in light and dark themes, cannot be dragged, and that **Schedule on <day>…** on the third day of the API bar creates a timed Event Note with `task: "[[<project>#^id]]"` and adds `^id` to the API line; **Open Project Note** opens at that line.
 
 Record additional Obsidian version, OS, test Vault description, fixture IDs (never private URLs), and pass/fail notes here as QA continues. Native behavior outside the verified scenarios above remains unverified.
 

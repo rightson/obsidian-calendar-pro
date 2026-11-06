@@ -31,6 +31,8 @@ export const DEFAULT_SETTINGS: PluginSettings = {
   monthsOnStartup: true,
   monthsMinimum: 3,
   agendaKeepTime: true,
+  ganttPeopleFolder: 'People',
+  ganttConfirmWrites: true,
 };
 
 type RecordLike = Record<string, unknown>;
@@ -55,6 +57,8 @@ export function normalizePluginSettings(raw: unknown, fallback: PluginSettings =
     monthsOnStartup: typeof input.monthsOnStartup === 'boolean' ? input.monthsOnStartup : fallback.monthsOnStartup,
     monthsMinimum: isMonthsMinimum(input.monthsMinimum) ? input.monthsMinimum : fallback.monthsMinimum,
     agendaKeepTime: typeof input.agendaKeepTime === 'boolean' ? input.agendaKeepTime : fallback.agendaKeepTime,
+    ganttPeopleFolder: typeof input.ganttPeopleFolder === 'string' ? input.ganttPeopleFolder : fallback.ganttPeopleFolder,
+    ganttConfirmWrites: typeof input.ganttConfirmWrites === 'boolean' ? input.ganttConfirmWrites : fallback.ganttConfirmWrites,
     eventPropertiesDefault: isEventPropertiesDefault(input.eventPropertiesDefault)
       ? input.eventPropertiesDefault : fallback.eventPropertiesDefault,
     eventClickAction: isEventClickAction(input.eventClickAction) ? input.eventClickAction : fallback.eventClickAction,

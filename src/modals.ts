@@ -37,9 +37,9 @@ export class EventModal extends Modal {
 
   constructor(app: Modal['app'], private settings: PluginSettings,
     private submit: (value: { title: string; interval: Interval }) => Promise<void>, private event?: CalendarEvent,
-    initial?: Interval, private note?: EventNoteControls) {
+    initial?: Interval & { title?: string }, private note?: EventNoteControls) {
     super(app);
-    this.titleValue = event?.title ?? '';
+    this.titleValue = event?.title ?? initial?.title ?? '';
     this.allDay = event?.allDay ?? initial?.allDay ?? false;
     const start = event?.start ?? initial?.start ?? moment().toISOString();
     const end = event?.end ?? initial?.end ?? dateAt(start, settings.timeZone).add(settings.defaultDurationMinutes, 'minutes').toISOString();

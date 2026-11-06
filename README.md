@@ -11,6 +11,7 @@ A calendar for Obsidian that keeps your events as Markdown notes in your Vault.
 - **Your schedule beside your notes.** An events sidebar shows a phone-style day timeline or a two-week list, and a month calendar sidebar marks event days and existing Daily Notes.
 - **Calendar subscriptions.** Add read-only HTTPS or `webcal://` feeds next to your local events. Holiday calendars shade their days.
 - **Finds and fixes note problems.** When a copied note duplicates an `event_id`, **Review Event Note problems** shows the copies side by side, highlights the differences, recommends which to keep, and applies the fix you choose. Notes with broken properties can be restored to their last valid version.
+- **Projects as Gantt charts.** Open a note's outline as a WBS table or a Gantt chart. Dates, progress, and assignees live in brackets at the end of each line, such as `(30%, 11/1-11/6, @小王)`, and dated tasks appear in the calendar. See [Projects and Gantt](docs/manuals/USER-GUIDE.md#projects-and-gantt).
 - **Local and private.** No account or telemetry. The only network requests fetch the feeds you add. See [privacy and compatibility](docs/manuals/USER-GUIDE.md#privacy-and-compatibility).
 
 | Event details | Event Note problems |
@@ -59,6 +60,7 @@ Where things live:
 | Event details dialog, event actions, change history | `src/modals.ts`, `src/event-actions.ts`, `src/history.ts` |
 | Subscriptions and holiday calendars | `src/ical*.ts`, `src/subscription*.ts`, `src/sync.ts`, `src/holidays.ts` |
 | Event Note problems | `src/note-problems.ts`, `src/problems-modal.ts` |
+| Gantt view and Project Notes | `src/gantt-view.ts`, `src/annotation.ts`, `src/tasks.ts`, `src/task-hints.ts`, `src/project-*.ts` |
 | Saved state and crash recovery | `src/store.ts`, `src/state.ts`, `src/vault-adapter.ts` |
 | Shared types and date/week helpers | `src/types.ts`, `src/date.ts` |
 | Tests (Node test runner) | `tests/*.test.ts` |

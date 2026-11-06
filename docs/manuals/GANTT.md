@@ -36,7 +36,7 @@ Every line becomes a row, and indentation sets the hierarchy. A row with tasks b
 
 You can combine them: `(30%, 11/1-11/6, @小王)`. Full-width brackets work too, as in `（30％，11/6）`. Brackets that contain anything else, such as `（跟 AAA 確認）`, are left alone as your own remark.
 
-You don't have to type the brackets. Edit a cell in **Table**, or drag a row from **Unscheduled** onto the timeline in **Chart**, and Calendar Pro writes them for you. The first time it changes a note, it shows you a preview and adds `gantt: true` to the note's properties.
+You don't have to type the brackets. Edit a cell in **Table**, or drag a row from **Unscheduled** onto the timeline in **Chart**, and the plugin writes them for you. The first time it changes a note, it shows you a preview and adds `gantt: true` to the note's properties.
 
 ## 3. Track progress
 
@@ -53,7 +53,7 @@ You don't have to type the brackets. Edit a cell in **Table**, or drag a row fro
 - **Zoom:** choose **Day**, **Week**, **Month**, or **Quarter**, or hold Ctrl (Cmd on a Mac) and scroll over the chart. The ⤢ button fits the whole project on screen. Dragging still moves bars by whole days.
 - **Task column:** drag its right edge to make it wider or narrower. Double-click the edge to reset it.
 
-Calendar Pro remembers folding, zoom, and the column width for each Gantt tab, never in the note.
+The Gantt view remembers folding, zoom, and the column width for each Gantt tab, never in the note.
 
 ![Chart at week zoom, with 設計 collapsed](../images/gantt-chart-light.png)
 

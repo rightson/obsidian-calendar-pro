@@ -1,9 +1,9 @@
 {
-  "id": "calendar-pro",
-  "name": "Calendar Pro",
-  "version": "0.2.1",
+  "id": "event-notes",
+  "name": "Event Notes",
+  "version": "0.3.0",
   "minAppVersion": "1.14.5",
-  "description": "Plan events in a calendar and connect them to Event, Daily, and Weekly Notes.",
+  "description": "Keep events and project tasks as Markdown notes linked from your Daily Notes, and see them in a calendar and Gantt chart.",
   "author": "rightson",
   "isDesktopOnly": true
 }

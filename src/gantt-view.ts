@@ -1,12 +1,14 @@
 import { ItemView, Menu, Notice, TFile, getIcon, normalizePath, setIcon, type ViewStateResult, type WorkspaceLeaf } from 'obsidian';
-import { addDays, daysBetween, formatDate, remarkIssue, updateTaskLine, type Assignee, type FieldChange } from './annotation';
+import { addDays, daysBetween, formatDate, parseTaskLine, remarkIssue, updateTaskLine, type Assignee, type FieldChange } from './annotation';
 import { dateAt } from './date';
+import { dayWidthOf, fitDayWidth, isZoom, levelFor, scale, stepZoom, ZOOM_LEVELS, type Band, type Zoom } from './gantt-scale';
 import { hasGanttKey } from './project-edit';
 import { confirmAction } from './project-writer';
 import { hintLabel, taskHints } from './task-hints';
 import {
-  canStep, demoteLine, isRemark, isUnscheduled, linkedTaskNote, parseAssigneeInput, parseDateInput, parseProject, plainTitle, promoteLine,
-  PROGRESS_STEPS, retitleLine, scheduleFromCell, stepProgress, taskNoteName, upgradeAssignee, type Project, type TaskNode,
+  canStep, collapsedBelow, demoteLine, isRemark, isUnscheduled, linkedTaskNote, parseAssigneeInput, parseDateInput, parseProject, plainTitle, promoteLine,
+  PROGRESS_STEPS, retargetLine, retitleLine, scheduleFromCell, splitTitle, stepProgress, subtree, taskNoteName, taskNoteNameError, upgradeAssignee,
+  type Project, type TaskNode,
 } from './tasks';
 import type CalendarNotePlugin from './main';
 
@@ -18,11 +20,14 @@ type Mode = 'table' | 'chart';
 type Parsed<T> = { value: T } | { error: string };
 
 const LABEL_WIDTH = 320;
-const ZOOMS: [number, string][] = [[24, 'Days'], [12, 'Weeks'], [5, 'Months']];
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MIN_LABEL = 160;
+const MAX_LABEL = 720;
+const LEVELS = [1, 2, 3];
 
 const weekday = (date: string) => (new Date(`${date}T00:00:00Z`).getUTCDay() + 6) % 7;
 const hue = (name: string) => [...name].reduce((sum, char) => (sum * 31 + char.codePointAt(0)!) % 360, 7);
+const clampLabel = (width: number) => Math.round(Math.max(MIN_LABEL, Math.min(MAX_LABEL, width)));
+const sameKeys = (a: Set<string>, b: Set<string>) => a.size === b.size && [...a].every(key => b.has(key));
 const assigneeLabel = (assignee: Assignee) => assignee.style === 'at' ? `@${assignee.name}` : `[[${assignee.name}${assignee.alias ? `|${assignee.alias}` : ''}]]`;
 
 /**
@@ -37,9 +42,16 @@ export class GanttView extends ItemView {
   private collapsed = new Set<string>();
   private colorBy: 'none' | 'assignee' = 'none';
   private filter = '';
-  private dayWidth = 24;
+  private zoom: Zoom = 'day';
+  /** Pixels per day as last drawn; drags and drops count whole days of it. */
+  private dayWidth = dayWidthOf('day');
+  private labelWidth = LABEL_WIDTH;
+  /** Where to scroll after a zoom: keep `day` under the point `px` from the scroller's left edge. */
+  private anchor?: { day: number; px: number; top: number };
+  private wheel = { delta: 0, at: 0 };
   private scrolledToToday = false;
   private rootEl?: HTMLElement;
+  private errors = new Set<HTMLElement>();
 
   constructor(leaf: WorkspaceLeaf, private readonly plugin: CalendarNotePlugin) { super(leaf); }
 
@@ -47,19 +59,25 @@ export class GanttView extends ItemView {
   getDisplayText(): string { return this.file ? `${this.file.basename} (Gantt)` : 'Gantt'; }
   getIcon(): string { return ganttIcon(); }
 
+  /** The layout keeps the mode, zoom, Task column width, and collapsed rows; none of it goes into the note. */
   getState(): Record<string, unknown> {
-    return { ...super.getState(), file: this.file?.path, mode: this.mode };
+    return { ...super.getState(), file: this.file?.path, mode: this.mode, zoom: this.zoom, labelWidth: this.labelWidth, collapsed: [...this.collapsed] };
   }
 
   async setState(state: unknown, result: ViewStateResult): Promise<void> {
-    const value = (state ?? {}) as { file?: unknown; mode?: unknown };
+    const value = (state ?? {}) as { file?: unknown; mode?: unknown; zoom?: unknown; labelWidth?: unknown; collapsed?: unknown };
     if (value.mode === 'table' || value.mode === 'chart') this.mode = value.mode;
+    if (isZoom(value.zoom)) this.zoom = value.zoom;
+    if (typeof value.labelWidth === 'number' && Number.isFinite(value.labelWidth)) this.labelWidth = clampLabel(value.labelWidth);
+    const collapsed = Array.isArray(value.collapsed) ? value.collapsed.filter((key): key is string => typeof key === 'string') : undefined;
     const file = typeof value.file === 'string' ? this.app.vault.getAbstractFileByPath(value.file) : null;
     if (file instanceof TFile && file !== this.file) {
       this.file = file;
       this.content = '';
-      this.collapsed.clear();
+      this.collapsed = new Set(collapsed ?? []);
       this.scrolledToToday = false;
+    } else if (collapsed) {
+      this.collapsed = new Set(collapsed);
     }
     await super.setState(state, result);
     await this.reload(true);
@@ -71,8 +89,21 @@ export class GanttView extends ItemView {
     this.registerEvent(this.app.metadataCache.on('changed', file => { if (file === this.file) void this.reload(); }));
     this.registerEvent(this.app.vault.on('rename', file => { if (file === this.file) this.render(); }));
     this.registerEvent(this.app.vault.on('delete', file => { if (file === this.file) { this.file = null; this.render(); } }));
+    // A tap on a touch screen opens one row's progress buttons; a tap anywhere else closes them.
+    this.registerDomEvent(this.rootEl, 'pointerdown', event => {
+      const row = (event.target as HTMLElement).closest('.cp-row');
+      for (const open of Array.from(this.rootEl?.querySelectorAll('.cp-row.is-steps-open') ?? [])) if (open !== row) open.removeClass('is-steps-open');
+    });
     this.render();
   }
+
+  async onClose(): Promise<void> { this.clearErrors(); }
+
+  onResize(): void {
+    if (this.mode === 'chart' && this.zoom === 'fit') this.render();
+  }
+
+  private saveState(): void { this.app.workspace.requestSaveLayout(); }
 
   private get today(): string {
     return dateAt(new Date(), this.plugin.store.state.settings.timeZone).format('YYYY-MM-DD');
@@ -98,6 +129,7 @@ export class GanttView extends ItemView {
     if (!root) return;
     const scroller = root.querySelector<HTMLElement>('.cp-gantt-scroll');
     const scroll = keepScroll && scroller && this.scrolledToToday ? [scroller.scrollLeft, scroller.scrollTop] : undefined;
+    this.clearErrors();
     root.empty();
     this.renderToolbar(root);
     const body = root.createDiv({ cls: `cp-gantt-body is-${this.mode}` });
@@ -110,11 +142,23 @@ export class GanttView extends ItemView {
       return;
     }
     const scrollEl = body.createDiv({ cls: 'cp-gantt-scroll' });
+    scrollEl.addEventListener('scroll', () => this.clearErrors(), { passive: true });
     if (this.mode === 'table') this.renderTable(scrollEl);
     else this.renderChart(scrollEl, body);
-    if (scroll) { scrollEl.scrollLeft = scroll[0]; scrollEl.scrollTop = scroll[1]; }
+    const anchor = this.anchor;
+    this.anchor = undefined;
+    if (anchor && this.mode === 'chart') {
+      scrollEl.scrollLeft = Math.max(0, this.labelWidth + anchor.day * this.dayWidth - anchor.px);
+      scrollEl.scrollTop = anchor.top;
+      this.scrolledToToday = true;
+    } else if (scroll) { scrollEl.scrollLeft = scroll[0]; scrollEl.scrollTop = scroll[1]; }
     else if (this.mode === 'chart') this.scrollToToday(scrollEl);
     else this.scrolledToToday = true;
+  }
+
+  private clearErrors(): void {
+    for (const error of this.errors) error.remove();
+    this.errors.clear();
   }
 
   private renderToolbar(root: HTMLElement): void {
@@ -130,20 +174,36 @@ export class GanttView extends ItemView {
     modeButton('Table', this.mode === 'table', () => this.setMode('table'));
     modeButton('Chart', this.mode === 'chart', () => this.setMode('chart'));
     const controls = bar.createDiv({ cls: 'cp-gantt-controls' });
-    const button = (label: string, click: () => void) => controls.createEl('button', { text: label }).addEventListener('click', click);
-    button('Expand all', () => { this.collapsed.clear(); this.render(); });
-    button('Collapse all', () => {
-      for (const node of this.project?.nodes ?? []) if (node.children.length) this.collapsed.add(node.key);
-      this.render();
-    });
+    const group = (label: string, cls = '') => {
+      const el = controls.createDiv({ cls: `cp-gantt-segmented ${cls}`.trim(), attr: { role: 'group', 'aria-label': label } });
+      return (text: string, title: string, active: boolean, click: () => void) => {
+        const button = el.createEl('button', { text, attr: { 'aria-label': title, 'aria-pressed': String(active), title } });
+        button.toggleClass('is-active', active);
+        button.addEventListener('click', click);
+        return button;
+      };
+    };
+    const nodes = this.project?.nodes ?? [];
+    const parents = new Set(nodes.filter(node => node.children.length).map(node => node.key));
+    const shown = new Set([...this.collapsed].filter(key => parents.has(key)));
+    const level = group('Outline levels', 'cp-gantt-levels');
+    for (const depth of LEVELS) {
+      const keys = collapsedBelow(nodes, depth);
+      level(String(depth), `Expand to level ${depth}`, !!parents.size && sameKeys(shown, keys), () => this.setCollapsed(keys));
+    }
+    level('Expand all', 'Expand all', !shown.size, () => this.setCollapsed(new Set()));
+    level('Collapse all', 'Collapse all', !!parents.size && sameKeys(shown, parents), () => this.setCollapsed(new Set(parents)));
     if (this.mode === 'chart') {
+      const zoom = group('Zoom', 'cp-gantt-zoom');
+      for (const option of ZOOM_LEVELS) zoom(option.label, `Zoom to ${option.label.toLowerCase()}s (Ctrl/Cmd + scroll to zoom)`, this.zoom === option.level, () => this.zoomTo(option.level));
+      const fit = zoom('', 'Zoom to fit the whole project', this.zoom === 'fit', () => this.zoomTo('fit'));
+      setIcon(fit, 'maximize-2');
       const select = (label: string, options: [string, string][], value: string, change: (value: string) => void) => {
         const el = controls.createEl('select', { attr: { 'aria-label': label, title: label } });
         for (const [key, text] of options) el.createEl('option', { value: key, text });
         el.value = value;
         el.addEventListener('change', () => change(el.value));
       };
-      select('Zoom', ZOOMS.map(([width, text]) => [String(width), text]), String(this.dayWidth), value => { this.dayWidth = Number(value); this.scrolledToToday = false; this.render(false); });
       select('Colour bars', [['none', 'One colour'], ['assignee', 'Colour by assignee']], this.colorBy, value => { this.colorBy = value as 'none' | 'assignee'; this.render(); });
       const names = [...new Set((this.project?.nodes ?? []).flatMap(node => node.assignees.map(assignee => assignee.name)))].sort();
       select('Show assignee', [['', 'Everyone'], ...names.map(name => [name, name] as [string, string])], this.filter, value => { this.filter = value; this.render(); });
@@ -151,6 +211,39 @@ export class GanttView extends ItemView {
     if (this.file && this.project && !hasGanttKey(this.content)) {
       bar.createDiv({ cls: 'cp-gantt-hint', text: 'Not a Project yet: the first change adds gantt: true to this note.' });
     }
+  }
+
+  private setCollapsed(keys: Set<string>): void {
+    this.collapsed = keys;
+    this.saveState();
+    this.render();
+  }
+
+  /** Change the zoom, keeping the day at `clientX` (or the middle of the timeline) where it is. */
+  private zoomTo(zoom: Zoom, clientX?: number): void {
+    const scroller = this.rootEl?.querySelector<HTMLElement>('.cp-gantt-scroll');
+    if (scroller && this.mode === 'chart') {
+      const px = clientX !== undefined ? clientX - scroller.getBoundingClientRect().left : this.labelWidth + (scroller.clientWidth - this.labelWidth) / 2;
+      const day = zoom === 'fit' ? 0 : Math.max(0, (scroller.scrollLeft + px - this.labelWidth) / this.dayWidth);
+      this.anchor = { day, px: zoom === 'fit' ? this.labelWidth : px, top: scroller.scrollTop };
+    }
+    this.zoom = zoom;
+    this.saveState();
+    this.render(false);
+  }
+
+  /** Ctrl/Cmd + wheel (and a trackpad pinch) steps through the zoom levels. */
+  private onWheel(event: WheelEvent): void {
+    if (!event.ctrlKey && !event.metaKey) return;
+    event.preventDefault();
+    const now = event.timeStamp;
+    if (now - this.wheel.at > 250) this.wheel.delta = 0;
+    this.wheel.at = now;
+    this.wheel.delta += event.deltaMode === 1 ? event.deltaY * 16 : event.deltaY;
+    if (Math.abs(this.wheel.delta) < 40) return;
+    const next = stepZoom(this.zoom, this.dayWidth, this.wheel.delta < 0 ? -1 : 1);
+    this.wheel.delta = 0;
+    if (next !== this.zoom) this.zoomTo(next, event.clientX);
   }
 
   private setMode(mode: Mode): void {
@@ -189,12 +282,33 @@ export class GanttView extends ItemView {
   private caret(parent: HTMLElement, node: TaskNode): void {
     if (!node.children.length) { parent.createSpan({ cls: 'cp-caret is-empty' }); return; }
     const open = !this.collapsed.has(node.key);
-    const caret = parent.createEl('button', { cls: 'cp-caret', attr: { 'aria-expanded': String(open), 'aria-label': `${open ? 'Collapse' : 'Expand'} ${plainTitle(node.title)}` } });
-    setIcon(caret, open ? 'chevron-down' : 'chevron-right');
-    caret.addEventListener('click', () => {
-      if (open) this.collapsed.add(node.key); else this.collapsed.delete(node.key);
+    const caret = parent.createEl('button', { cls: 'cp-caret', attr: {
+      'aria-expanded': String(open), 'aria-label': `${open ? 'Collapse' : 'Expand'} ${plainTitle(node.title)}`,
+      title: `${open ? 'Collapse' : 'Expand'} (Alt/Option-click: every level below)`,
+    } });
+    caret.toggleClass('is-open', open);
+    setIcon(caret, 'chevron-right');
+    caret.addEventListener('click', event => {
+      // Alt/Option-click opens or closes the whole branch, not just this row.
+      for (const each of event.altKey ? subtree(node).filter(child => child.children.length) : [node]) {
+        if (open) this.collapsed.add(each.key); else this.collapsed.delete(each.key);
+      }
+      this.saveState();
       this.render();
     });
+  }
+
+  /**
+   * Collapsed rows are remembered by key, and a key holds the title; move
+   * them along when a row is renamed. Returns a function that puts them back.
+   */
+  private rekey(node: TaskNode, title: string): () => void {
+    const before = new Set(this.collapsed);
+    const repeat = /#\d+$/.exec(node.key)?.[0] ?? '#0';
+    const next = `${node.parent?.key ?? ''}/${title}${repeat}`;
+    this.collapsed = new Set([...before].map(key => key === node.key || key.startsWith(`${node.key}/`) ? next + key.slice(node.key.length) : key));
+    if (!sameKeys(before, this.collapsed)) this.saveState();
+    return () => { this.collapsed = before; this.saveState(); };
   }
 
   // —— Writes ——
@@ -233,12 +347,19 @@ export class GanttView extends ItemView {
     this.renderTaskCell(row.createEl('td', { cls: 'cp-task' }), node);
 
     const pct = row.createEl('td', { cls: 'cp-pct' });
-    if (node.summary) this.meter(pct, node.progress ?? 0);
-    else this.input(pct, node.isTask ? String(node.progress ?? 0) : '', 'Progress', text => {
+    const box = pct.createDiv({ cls: 'cp-pct-box' });
+    if (node.summary) this.meter(box, node.progress ?? 0);
+    else this.input(box, node.isTask ? String(node.progress ?? 0) : '', 'Progress', text => {
       const match = /^\s*(\d{1,3})\s*[%％]?\s*$/.exec(text);
       if (!text.trim()) return { value: 0 };
       return match && Number(match[1]) <= 100 ? { value: Number(match[1]) } : { error: 'Enter a number from 0 to 100.' };
-    }, value => this.change(node, { progress: value }, `Progress of ${this.name(node)} is ${value}%.`), { placeholder: '–' });
+    }, value => this.change(node, { progress: value }, `Progress of ${this.name(node)} is ${value}%.`), { placeholder: '–', cls: 'cp-pct-input' });
+    if (!node.summary && !isRemark(node)) this.renderSteps(box, node);
+    // Touch screens have no hover: a tap on the % cell shows the buttons.
+    pct.addEventListener('pointerdown', event => {
+      if (event.pointerType === 'mouse' || (event.target as HTMLElement).closest('.cp-steps')) return;
+      row.addClass('is-steps-open');
+    });
 
     this.renderDateCells(row, node);
     this.renderAssigneeCell(row.createEl('td', { cls: 'cp-assignee' }), node);
@@ -249,18 +370,7 @@ export class GanttView extends ItemView {
     const wrap = cell.createDiv({ cls: 'cp-task-wrap' });
     wrap.setCssProps({ '--cp-depth': String(node.depth) });
     this.caret(wrap, node);
-    const link = linkedTaskNote(node.title);
-    if (link) {
-      const anchor = wrap.createEl('a', { cls: 'cp-task-link internal-link', text: link.alias ?? link.target.split('/').pop()!, href: '#' });
-      anchor.title = `Open Task Note ${link.target}`;
-      anchor.addEventListener('click', event => {
-        event.preventDefault();
-        void this.app.workspace.openLinkText(link.target, this.file?.path ?? '', 'tab');
-      });
-    } else {
-      this.input<string>(wrap, node.title, 'Task', text => text.trim() ? { value: text } : { error: 'Enter a task name.' },
-        value => this.edit(node, text => retitleLine(text, this.today, value), `Renamed to “${value.trim()}”.`), { cls: 'cp-title-input' });
-    }
+    this.renderName(wrap, node);
     const issue = remarkIssue(node.title, this.today);
     if (issue.length) {
       const warn = wrap.createSpan({ cls: 'cp-remark-warning', text: '⚠' });
@@ -337,18 +447,58 @@ export class GanttView extends ItemView {
     }
   }
 
-  private renderActions(cell: HTMLElement, node: TaskNode): void {
-    if (!node.summary && !isRemark(node)) {
-      const current = node.isTask ? node.progress ?? 0 : 0;
-      for (const step of [...PROGRESS_STEPS, 'done'] as const) {
-        const button = cell.createEl('button', { cls: 'cp-step', text: step === 'done' ? 'Done' : `+${step}` });
-        button.disabled = !canStep(current, step);
-        button.addEventListener('click', () => {
-          const value = stepProgress(current, step);
-          void this.change(node, { progress: value }, `Progress of ${this.name(node)} is ${value}%.`);
-        });
-      }
+  /** +10, +20, and Done beside the %, in space kept for them; they show while the row is hovered or focused. */
+  private renderSteps(parent: HTMLElement, node: TaskNode): void {
+    const steps = parent.createDiv({ cls: 'cp-steps', attr: { role: 'group', 'aria-label': `Raise the progress of ${plainTitle(node.title)}` } });
+    const current = node.isTask ? node.progress ?? 0 : 0;
+    for (const step of [...PROGRESS_STEPS, 'done'] as const) {
+      const button = steps.createEl('button', { cls: 'cp-step', text: step === 'done' ? 'Done' : `+${step}` });
+      button.disabled = !canStep(current, step);
+      button.addEventListener('click', () => {
+        const value = stepProgress(current, step);
+        void this.change(node, { progress: value }, `Progress of ${this.name(node)} is ${value}%.`);
+      });
     }
+  }
+
+  /**
+   * The task name as an editable field. Only the name is rewritten: remark
+   * brackets after it, the annotation, and the block ID stay. A Task Note link
+   * renames the note itself, and Obsidian updates the links to it.
+   */
+  private renderName(parent: HTMLElement, node: TaskNode, cls = ''): void {
+    const { name, remark } = splitTitle(node.title);
+    const link = linkedTaskNote(name);
+    if (!link) {
+      this.input<string>(parent, name, 'Task name', text => text.trim() ? { value: text.trim() } : { error: 'Enter a task name.' }, value => {
+        const { gap, remark: kept } = splitTitle(node.title);
+        const restore = this.rekey(node, kept ? `${value}${gap}${kept}` : value);
+        return this.edit(node, text => retitleLine(text, this.today, value), `Renamed “${plainTitle(name)}” to “${value}”.`).then(done => { if (!done) restore(); });
+      }, { cls: `cp-title-input ${cls}`.trim() });
+    } else if (link.alias !== undefined) {
+      // The row shows the alias, so the alias is what changes; the link still points at the same note.
+      const input = this.input<string>(parent, link.alias, 'Task name', text => {
+        if (!text.trim()) return { error: 'Enter a task name.' };
+        return /[[\]|]/.test(text) ? { error: 'The shown name cannot contain [, ], or |.' } : { value: text.trim() };
+      }, value => this.edit(node, text => retitleLine(text, this.today, `[[${link.target}|${value}]]`), `Renamed “${link.alias}” to “${value}”.`),
+      { cls: `cp-title-input is-link ${cls}`.trim() });
+      input.setAttr('aria-description', `The link text; the Task Note stays ${link.target}.`);
+    } else {
+      const input = this.input<string>(parent, link.target.split('/').pop()!, 'Task name', text => {
+        const error = taskNoteNameError(text);
+        return error ? { error } : { value: text.trim() };
+      }, value => this.renameTaskNote(node, link.target, value), { cls: `cp-title-input is-link ${cls}`.trim() });
+      input.setAttr('aria-description', `Renames the Task Note ${link.target}.`);
+    }
+    if (link) {
+      const open = parent.createEl('button', { cls: 'cp-open-note clickable-icon', attr: { 'aria-label': `Open Task Note ${link.target}`, title: `Open ${link.target}` } });
+      setIcon(open, 'arrow-up-right');
+      open.addEventListener('click', () => void this.app.workspace.openLinkText(link.target, this.file?.path ?? '', 'tab'));
+    }
+    if (remark) parent.createSpan({ cls: 'cp-remark', text: remark, attr: { title: 'Your remark. Renaming the task keeps it.' } });
+  }
+
+  private renderActions(cell: HTMLElement, node: TaskNode): void {
     const more = cell.createEl('button', { cls: 'cp-more clickable-icon', attr: { 'aria-label': 'More actions' } });
     setIcon(more, 'more-horizontal');
     more.addEventListener('click', event => this.rowMenu(node, event));
@@ -379,7 +529,10 @@ export class GanttView extends ItemView {
     const input = parent.createEl('input', { type: 'text', cls: `cp-cell-input ${options.cls ?? ''}`.trim(), value, attr: { 'aria-label': label } });
     if (options.placeholder) input.placeholder = options.placeholder;
     let error: HTMLElement | undefined;
-    const clear = () => { input.removeClass('is-invalid'); input.removeAttribute('aria-invalid'); input.title = ''; error?.remove(); error = undefined; };
+    const clear = () => {
+      input.removeClass('is-invalid'); input.removeAttribute('aria-invalid'); input.title = '';
+      if (error) { error.remove(); this.errors.delete(error); error = undefined; }
+    };
     input.addEventListener('keydown', event => {
       if (event.key === 'Enter') { event.preventDefault(); input.blur(); }
       if (event.key === 'Escape') { input.value = value; clear(); input.blur(); }
@@ -392,8 +545,11 @@ export class GanttView extends ItemView {
         input.addClass('is-invalid');
         input.setAttribute('aria-invalid', 'true');
         input.title = parsed.error;
-        error ??= parent.createDiv({ cls: 'cp-cell-error' });
+        // Shown over the rows below, so a mistake does not make the row taller.
+        if (!error) { error = document.body.createDiv({ cls: 'cp-cell-error' }); this.errors.add(error); }
         error.setText(parsed.error);
+        const rect = input.getBoundingClientRect();
+        error.setCssProps({ left: `${rect.left}px`, top: `${rect.bottom + 2}px` });
         return;
       }
       void apply(parsed.value);
@@ -432,6 +588,75 @@ export class GanttView extends ItemView {
     }
   }
 
+  /** Rename a Task Note through Obsidian, so every link to it follows; Undo renames it back. */
+  private async renameTaskNote(node: TaskNode, target: string, name: string): Promise<boolean> {
+    const project = this.file;
+    if (!project) return false;
+    const note = this.app.metadataCache.getFirstLinkpathDest(target, project.path);
+    const fail = async (message: string) => { new Notice(message); await this.reload(true); return false; };
+    if (!note) return fail(`There is no note for ${target} yet, so there is nothing to rename. Open it to create it, or demote the task to text.`);
+    if (name === note.basename) return false;
+    const folder = note.parent && note.parent.path !== '/' ? `${note.parent.path}/` : '';
+    const to = normalizePath(`${folder}${name}.${note.extension}`);
+    const existing = this.app.vault.getAbstractFileByPath(to);
+    if (existing && existing !== note) return fail(`${to} already exists.`);
+    if (!await this.plugin.projectWriter.previewRename(project.path, note.path, to)) return fail('The Task Note was not renamed.');
+    const from = note.path;
+    const next = target.includes('/') ? `${target.slice(0, target.lastIndexOf('/') + 1)}${name}` : name;
+    const restore = this.rekey(node, `[[${next}]]`);
+    try {
+      await this.moveTaskNote(note, to, target, next);
+    } catch (error) {
+      restore();
+      return fail(error instanceof Error ? error.message : `Could not rename ${from}.`);
+    }
+    this.plugin.projectWriter.actionNotice(`Renamed the Task Note to “${name}”.`, async () => {
+      const moved = this.app.vault.getAbstractFileByPath(to);
+      if (!(moved instanceof TFile)) throw new Error(`${to} no longer exists.`);
+      await this.moveTaskNote(moved, from, next, target);
+    });
+    return true;
+  }
+
+  /**
+   * Move the note; Obsidian updates links as the user's settings say. When
+   * this project still links to the old name afterwards, offer to update it.
+   */
+  private async moveTaskNote(note: TFile, to: string, oldTarget: string, newTarget: string): Promise<void> {
+    await this.app.fileManager.renameFile(note, to);
+    const project = this.file;
+    if (!project) return;
+    // Let Obsidian finish its own link updates before checking.
+    await new Promise(resolve => window.setTimeout(resolve, 500));
+    if (this.app.metadataCache.getFirstLinkpathDest(oldTarget, project.path)) return;
+    const stale = (text: string) => {
+      const line = parseTaskLine(text.replace(/\r$/, ''), this.today);
+      return line && linkedTaskNote(splitTitle(line.title).name)?.target === oldTarget;
+    };
+    if (!(await this.plugin.projectWriter.read(project)).split('\n').some(stale)) return;
+    const relink = (content: string) => content.split('\n').map(text => {
+      if (!stale(text)) return text;
+      const cr = text.endsWith('\r') ? '\r' : '';
+      return retargetLine(text.replace(/\r$/, ''), this.today, newTarget) + cr;
+    }).join('\n');
+    const notice = new Notice(createFragment(fragment => {
+      fragment.appendText(`Obsidian did not update the links to ${to}, so this project still links to [[${oldTarget}]]. `);
+      fragment.createEl('a', { text: 'Update this project', href: '#', cls: 'cp-gantt-undo' });
+    }), 0);
+    notice.messageEl.addEventListener('click', event => {
+      if (!(event.target as HTMLElement).closest('.cp-gantt-undo')) return;
+      event.preventDefault();
+      notice.hide();
+      void this.plugin.projectWriter.write(project.path, relink).then(changed => {
+        if (changed) this.plugin.projectWriter.undoNotice(`Linked the tasks to [[${newTarget}]].`, project.path, content => content.split('\n').map(text => {
+          const line = parseTaskLine(text.replace(/\r$/, ''), this.today);
+          if (!line || linkedTaskNote(splitTitle(line.title).name)?.target !== newTarget) return text;
+          return retargetLine(text.replace(/\r$/, ''), this.today, oldTarget) + (text.endsWith('\r') ? '\r' : '');
+        }).join('\n'));
+      }, error => new Notice(error instanceof Error ? error.message : 'Could not change the note.'));
+    });
+  }
+
   private personPath(name: string): string {
     if (name.includes('/')) return normalizePath(`${name}.md`);
     const folder = this.plugin.store.state.settings.ganttPeopleFolder.trim().replace(/^\/+|\/+$/g, '');
@@ -462,35 +687,44 @@ export class GanttView extends ItemView {
   private renderChart(scrollEl: HTMLElement, body: HTMLElement): void {
     const { from, to } = this.chartRange();
     const days = daysBetween(from, to) + 1;
-    const dw = this.dayWidth;
+    const dw = this.dayWidth = this.zoom === 'fit' ? fitDayWidth(days, body.clientWidth - this.labelWidth - 16) : dayWidthOf(this.zoom);
+    const level = this.zoom === 'fit' ? levelFor(dw) : this.zoom;
     const x = (date: string) => daysBetween(from, date) * dw;
-    const chart = scrollEl.createDiv({ cls: 'cp-chart' });
-    chart.setCssProps({ '--cp-day': `${dw}px`, '--cp-label': `${LABEL_WIDTH}px`, '--cp-days': String(days) });
+    const chart = scrollEl.createDiv({ cls: `cp-chart is-${level}` });
+    chart.setCssProps({ '--cp-day': `${dw}px`, '--cp-label': `${this.labelWidth}px`, '--cp-days': String(days) });
+    scrollEl.addEventListener('wheel', event => this.onWheel(event), { passive: false });
 
     const header = chart.createDiv({ cls: 'cp-chart-header' });
-    header.createDiv({ cls: 'cp-chart-corner', text: 'Task' });
-    const scale = header.createDiv({ cls: 'cp-chart-scale' });
-    const monthRow = scale.createDiv({ cls: 'cp-scale-months' });
-    const dayRow = scale.createDiv({ cls: 'cp-scale-days' });
-    for (let index = 0; index < days; index++) {
-      const date = addDays(from, index);
-      if (index === 0 || date.endsWith('-01')) {
-        const month = monthRow.createDiv({ cls: 'cp-scale-month', text: `${MONTHS[Number(date.slice(5, 7)) - 1]} ${date.slice(0, 4)}` });
-        month.setCssProps({ left: `${index * dw}px` });
-      }
-      const label = dw >= 12 ? String(Number(date.slice(8))) : dw >= 6 && weekday(date) === 0 ? String(Number(date.slice(8))) : '';
-      const cell = dayRow.createDiv({ cls: 'cp-scale-day', text: label });
-      cell.toggleClass('is-weekend', weekday(date) >= 5);
-      cell.toggleClass('is-today', date === this.today);
+    const corner = header.createDiv({ cls: 'cp-chart-corner', text: 'Task' });
+    this.renderResizer(corner, chart);
+    const ticks = scale(from, to, level);
+    const scaleEl = header.createDiv({ cls: 'cp-chart-scale' });
+    const band = (row: HTMLElement, item: Band, cls: string) => {
+      const el = row.createDiv({ cls, text: item.label });
+      el.setCssProps({ left: `${item.offset * dw}px`, width: `${item.days * dw}px` });
+      el.title = item.label;
+      return el;
+    };
+    const majorRow = scaleEl.createDiv({ cls: 'cp-scale-major' });
+    for (const item of ticks.major) band(majorRow, item, 'cp-scale-band is-major');
+    const minorRow = scaleEl.createDiv({ cls: 'cp-scale-minor' });
+    for (const item of ticks.minor) {
+      const el = band(minorRow, item, 'cp-scale-band is-minor');
+      el.toggleClass('is-weekend', !!item.weekend);
+      el.toggleClass('is-today', item.start <= this.today && this.today < addDays(item.start, item.days));
+      if (level === 'day') el.title = formatDate(item.start, this.today);
     }
 
     const rows = chart.createDiv({ cls: 'cp-chart-rows' });
     const nodes = this.visibleNodes();
-    const line = (date: string, cls: string, title?: string) => {
+    const line = (date: string, cls: string, title?: string, offset = dw / 2) => {
       const el = rows.createDiv({ cls: `cp-vline ${cls}` });
-      el.setCssProps({ left: `calc(var(--cp-label) + ${x(date) + dw / 2}px)` });
+      el.setCssProps({ left: `calc(var(--cp-label) + ${x(date) + offset}px)` });
       if (title) el.title = title;
     };
+    // Grid lines at each week, month, or quarter when days are too narrow to shade.
+    if (level !== 'day') for (const item of ticks.minor) if (item.offset > 0) line(item.start, 'is-grid', undefined, 0);
+    for (const item of ticks.major) if (item.offset > 0) line(item.start, 'is-grid is-major', undefined, 0);
     line(this.today, 'is-today', `Today, ${formatDate(this.today, this.today)}`);
     for (const node of nodes) if (node.milestone && !node.summary) line(node.milestone, 'is-milestone');
     for (const node of nodes) {
@@ -502,11 +736,62 @@ export class GanttView extends ItemView {
       const indent = label.createDiv({ cls: 'cp-task-wrap' });
       indent.setCssProps({ '--cp-depth': String(node.depth) });
       this.caret(indent, node);
-      indent.createSpan({ cls: 'cp-chart-title', text: plainTitle(node.title) });
+      this.renderName(indent, node, 'cp-chart-title');
       if (node.isTask) label.createSpan({ cls: 'cp-chart-pct', text: `${node.progress ?? 0}%` });
       this.renderLane(row.createDiv({ cls: 'cp-chart-lane' }), node, x);
     }
-    this.renderUnscheduled(body, scrollEl, scale, from);
+    this.renderUnscheduled(body, scrollEl, scaleEl, from);
+  }
+
+  /** The Task column's right edge: drag it, use the arrow keys, or double-click to reset. Kept in the view state. */
+  private renderResizer(corner: HTMLElement, chart: HTMLElement): void {
+    const grip = corner.createDiv({ cls: 'cp-label-resizer', attr: {
+      role: 'separator', tabindex: '0', 'aria-orientation': 'vertical', 'aria-label': 'Task column width',
+      'aria-valuemin': String(MIN_LABEL), 'aria-valuemax': String(MAX_LABEL), 'aria-valuenow': String(this.labelWidth),
+      title: 'Drag to change the width of the Task column. Double-click to reset.',
+    } });
+    const show = (width: number) => {
+      const value = clampLabel(width);
+      chart.setCssProps({ '--cp-label': `${value}px` });
+      grip.setAttr('aria-valuenow', String(value));
+      return value;
+    };
+    const commit = (width: number) => {
+      this.labelWidth = show(width);
+      this.saveState();
+      if (this.zoom === 'fit') this.render();
+    };
+    grip.addEventListener('pointerdown', event => {
+      if (event.button !== 0) return;
+      event.preventDefault();
+      event.stopPropagation();
+      grip.setPointerCapture(event.pointerId);
+      chart.addClass('is-resizing');
+      const origin = event.clientX;
+      const start = this.labelWidth;
+      let width = start;
+      const onMove = (next: PointerEvent) => { width = show(start + next.clientX - origin); };
+      const finish = () => {
+        grip.removeEventListener('pointermove', onMove);
+        grip.removeEventListener('pointerup', finish);
+        grip.removeEventListener('pointercancel', finish);
+        chart.removeClass('is-resizing');
+        if (width !== start) commit(width);
+      };
+      grip.addEventListener('pointermove', onMove);
+      grip.addEventListener('pointerup', finish);
+      grip.addEventListener('pointercancel', finish);
+    });
+    grip.addEventListener('dblclick', () => commit(LABEL_WIDTH));
+    grip.addEventListener('keydown', event => {
+      const step = event.shiftKey ? 64 : 16;
+      const next = event.key === 'ArrowLeft' ? this.labelWidth - step : event.key === 'ArrowRight' ? this.labelWidth + step
+        : event.key === 'Home' ? LABEL_WIDTH : undefined;
+      if (next === undefined) return;
+      event.preventDefault();
+      commit(next);
+      this.rootEl?.querySelector<HTMLElement>('.cp-label-resizer')?.focus();
+    });
   }
 
   private color(node: TaskNode): string | undefined {
@@ -519,9 +804,16 @@ export class GanttView extends ItemView {
     const show = (date: string) => formatDate(date, this.today);
     if (node.summary) {
       if (node.start && node.end) {
+        // A collapsed branch keeps its span, drawn as a full bar with its progress.
+        const collapsed = this.collapsed.has(node.key);
         const bar = lane.createDiv({ cls: 'cp-summary-bar' });
-        bar.setCssProps({ left: `${x(node.start)}px`, width: `${x(node.end) - x(node.start) + dw}px` });
-        bar.title = `${plainTitle(node.title)}: ${show(node.start)}–${show(node.end)}, ${node.progress ?? 0}%`;
+        bar.toggleClass('is-collapsed', collapsed);
+        bar.setCssProps({ left: `${x(node.start)}px`, width: `${Math.max(2, x(node.end) - x(node.start) + dw)}px` });
+        bar.title = `${plainTitle(node.title)}: ${show(node.start)}–${show(node.end)}, ${node.progress ?? 0}%${collapsed ? ' (collapsed)' : ''}`;
+        if (collapsed) {
+          bar.createDiv({ cls: 'cp-bar-fill' }).setCssProps({ width: `${node.progress ?? 0}%` });
+          lane.createDiv({ cls: 'cp-bar-text', text: plainTitle(node.title) }).setCssProps({ left: `${x(node.end) + dw + 4}px` });
+        }
       }
       if (node.target) {
         const target = lane.createDiv({ cls: 'cp-target' });
@@ -536,7 +828,7 @@ export class GanttView extends ItemView {
       const bar = lane.createDiv({ cls: 'cp-bar' });
       const color = this.color(node);
       if (color) bar.setCssProps({ '--cp-bar-color': color });
-      const place = (s: number, e: number) => bar.setCssProps({ left: `${x(start) + s * dw}px`, width: `${x(end) - x(start) + (e - s + 1) * dw}px` });
+      const place = (s: number, e: number) => bar.setCssProps({ left: `${x(start) + s * dw}px`, width: `${Math.max(3, x(end) - x(start) + (e - s + 1) * dw)}px` });
       place(0, 0);
       bar.createDiv({ cls: 'cp-bar-fill' }).setCssProps({ width: `${node.progress ?? 0}%` });
       bar.title = `${plainTitle(node.title)}: ${show(start)}–${show(end)}, ${node.progress ?? 0}%. Drag to move, drag an end to change it.`;
@@ -555,8 +847,8 @@ export class GanttView extends ItemView {
         this.drag(el, delta => which === 'start' ? place(clamp(delta), 0) : place(0, clamp(delta)),
           delta => which === 'start' ? commit(clamp(delta), 0) : commit(0, clamp(delta)));
       };
-      handle('start');
-      handle('end');
+      // Too narrow to grab an end: the whole bar moves.
+      if ((length + 1) * dw >= 20) { handle('start'); handle('end'); }
       return;
     }
     if (node.due) {
@@ -636,7 +928,7 @@ export class GanttView extends ItemView {
         const dayAt = (e: PointerEvent): string | undefined => {
           const area = scrollEl.getBoundingClientRect();
           const origin = scale.getBoundingClientRect().left;
-          if (e.clientX < area.left + LABEL_WIDTH || e.clientX > area.right || e.clientY < area.top || e.clientY > area.bottom) return undefined;
+          if (e.clientX < area.left + this.labelWidth || e.clientX > area.right || e.clientY < area.top || e.clientY > area.bottom) return undefined;
           return addDays(from, Math.floor((e.clientX - origin) / this.dayWidth));
         };
         const onMove = (e: PointerEvent) => { place(e); const day = dayAt(e); ghost.setText(day ? `${plainTitle(node.title)} → ${formatDate(day, this.today)}` : plainTitle(node.title)); };

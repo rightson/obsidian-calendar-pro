@@ -88,6 +88,11 @@ export class ProjectWriter {
   }
 
   undoNotice(message: string, path: string, undo: Transform): void {
+    this.actionNotice(message, () => this.write(path, undo));
+  }
+
+  /** A notice whose Undo link runs `undo`. */
+  actionNotice(message: string, undo: () => Promise<unknown>): void {
     const notice = new Notice(createFragment(fragment => {
       fragment.appendText(`${message} `);
       fragment.createEl('a', { text: 'Undo', href: '#', cls: 'cp-gantt-undo' });
@@ -96,8 +101,57 @@ export class ProjectWriter {
       if (!(event.target as HTMLElement).closest('.cp-gantt-undo')) return;
       event.preventDefault();
       notice.hide();
-      this.write(path, undo).catch(error => new Notice(error instanceof Error ? error.message : 'Could not undo the change.'));
+      undo().catch(error => new Notice(error instanceof Error ? error.message : 'Could not undo the change.'));
     });
+  }
+
+  /**
+   * Ask before renaming a Task Note from a Project, when the first change to
+   * that Project would be previewed; a confirmed rename counts as that change.
+   */
+  async previewRename(path: string, from: string, to: string): Promise<boolean> {
+    if (!this.host.settings().ganttConfirmWrites || this.confirmed.has(path)) return true;
+    const answer = await new RenameModal(this.app, from, to).choose();
+    if (!answer) return false;
+    if (answer === 'always') await this.host.updateSettings(settings => { settings.ganttConfirmWrites = false; });
+    this.confirmed.add(path);
+    return true;
+  }
+}
+
+/** Shows which Task Note a rename moves, and that Obsidian updates the links to it. */
+class RenameModal extends Modal {
+  private resolve?: (answer: 'once' | 'always' | undefined) => void;
+  private answer: 'once' | 'always' | undefined;
+
+  constructor(app: App, private readonly from: string, private readonly to: string) { super(app); }
+
+  choose(): Promise<'once' | 'always' | undefined> {
+    return new Promise(resolve => { this.resolve = resolve; this.open(); });
+  }
+
+  onOpen(): void {
+    this.modalEl.addClass('cp-gantt-diff-modal');
+    this.titleEl.setText('Rename the Task Note?');
+    const root = this.contentEl;
+    root.createEl('p', { text: 'This task is a link to its own note, so Calendar Pro renames that note. Obsidian then updates the links to it, including the one in this project.' });
+    const diff = root.createDiv({ cls: 'cp-gantt-diff' });
+    diff.createDiv({ cls: 'cp-diff-line is-removed', text: `- ${this.from}` });
+    diff.createDiv({ cls: 'cp-diff-line is-added', text: `+ ${this.to}` });
+    const never = root.createEl('label', { cls: 'cp-gantt-never' });
+    const check = never.createEl('input', { type: 'checkbox' });
+    never.appendText(' Don’t ask again');
+    const buttons = root.createDiv({ cls: 'modal-button-container' });
+    buttons.createEl('button', { text: 'Cancel' }).addEventListener('click', () => this.close());
+    const apply = buttons.createEl('button', { text: 'Rename', cls: 'mod-cta' });
+    apply.addEventListener('click', () => { this.answer = check.checked ? 'always' : 'once'; this.close(); });
+    window.setTimeout(() => apply.focus(), 0);
+  }
+
+  onClose(): void {
+    this.contentEl.empty();
+    this.resolve?.(this.answer);
+    this.resolve = undefined;
   }
 }
 

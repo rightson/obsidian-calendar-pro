@@ -89,7 +89,7 @@ export class CalendarNoteView extends ItemView {
     this.sidebarEl = sidebar;
     const miniHeading = sidebar.createDiv({ cls: 'cn-mini-heading' });
     const miniPrev = miniHeading.createEl('button', { text: '‹', attr: { 'aria-label': 'Previous month' } });
-    this.miniNavTitle = miniHeading.createEl('span');
+    this.miniNavTitle = miniHeading.createSpan();
     const miniToday = miniHeading.createEl('button', { text: 'Today', attr: { 'aria-label': 'Navigate calendar to today' } });
     const miniNext = miniHeading.createEl('button', { text: '›', attr: { 'aria-label': 'Next month' } });
     const miniCollapse = miniHeading.createEl('button', { text: '×', attr: { 'aria-label': 'Collapse calendar sidebar', title: 'Collapse calendar sidebar' } });
@@ -100,8 +100,8 @@ export class CalendarNoteView extends ItemView {
     miniToday.addEventListener('click', () => this.navigateToday());
     miniCollapse.addEventListener('click', () => void this.togglePanel('sidebar'));
     this.miniResizeObserver = new ResizeObserver(() => {
-      if (this.miniResizeFrame) cancelAnimationFrame(this.miniResizeFrame);
-      this.miniResizeFrame = requestAnimationFrame(() => { this.miniResizeFrame = undefined; this.renderMini(); });
+      if (this.miniResizeFrame) window.cancelAnimationFrame(this.miniResizeFrame);
+      this.miniResizeFrame = window.requestAnimationFrame(() => { this.miniResizeFrame = undefined; this.renderMini(); });
     });
     this.miniResizeObserver.observe(this.miniEl);
     this.separatorEl = shell.createDiv({ cls: 'cn-sidebar-resizer', attr: {
@@ -217,12 +217,12 @@ export class CalendarNoteView extends ItemView {
         const formatted = dateAt(arg.date, this.settings.timeZone).locale('en');
         if (arg.view.type === 'dayGridMonth' || arg.view.type === 'multiMonthYear') return formatted.format('ddd');
         const day = formatted.format('YYYY-MM-DD');
-        const button = document.createElement('button');
+        const button = createEl('button');
         button.type = 'button';
         button.className = 'cn-date-open cn-date-open-header';
         button.setAttribute('aria-label', `Open Daily Note for ${day}`);
-        const weekday = document.createElement('span'); weekday.textContent = formatted.format('ddd');
-        const number = document.createElement('span'); number.textContent = formatted.format('D');
+        const weekday = createSpan(); weekday.textContent = formatted.format('ddd');
+        const number = createSpan(); number.textContent = formatted.format('D');
         button.append(weekday, number);
         button.addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); void this.openDay(day); });
         return { domNodes: [button] };
@@ -242,7 +242,7 @@ export class CalendarNoteView extends ItemView {
         const event = this.plugin.eventById(arg.event.id);
         if (!event) return;
         arg.el.setAttribute('aria-label', `${event.title}. ${this.settings.eventClickAction === 'dialog' ? 'Show event details.' : 'Open Event Note.'}`);
-        const details = document.createElement('button');
+        const details = createEl('button');
         details.className = 'cn-event-details';
         details.textContent = '⋯';
         details.type = 'button';
@@ -291,8 +291,8 @@ export class CalendarNoteView extends ItemView {
     this.miniResizeObserver?.disconnect();
     this.shellResizeObserver?.disconnect();
     this.stopSidebarDrag?.();
-    if (this.miniResizeFrame) cancelAnimationFrame(this.miniResizeFrame);
-    if (this.layoutResizeFrame) cancelAnimationFrame(this.layoutResizeFrame);
+    if (this.miniResizeFrame) window.cancelAnimationFrame(this.miniResizeFrame);
+    if (this.layoutResizeFrame) window.cancelAnimationFrame(this.layoutResizeFrame);
     this.calendar?.destroy(); this.calendar = undefined;
     this.plugin.releaseVisibleRange(this);
   }
@@ -325,8 +325,8 @@ export class CalendarNoteView extends ItemView {
     if (this.miniNavTitle) this.miniNavTitle.title = `${dates} Week numbers open Weekly Notes${mainCollapsed ? ' beside the calendar' : ''}.`;
     this.separatorEl.setAttribute('aria-valuenow', String(width || requested));
     this.updateDisplayControls();
-    if (this.layoutResizeFrame) cancelAnimationFrame(this.layoutResizeFrame);
-    this.layoutResizeFrame = requestAnimationFrame(() => { this.layoutResizeFrame = undefined; this.calendar?.updateSize(); });
+    if (this.layoutResizeFrame) window.cancelAnimationFrame(this.layoutResizeFrame);
+    this.layoutResizeFrame = window.requestAnimationFrame(() => { this.layoutResizeFrame = undefined; this.calendar?.updateSize(); });
   }
   private updateDisplayControls(): void {
     this.sidebarRestore?.setAttribute('aria-expanded', String(!this.settings.sidebarCollapsed));
@@ -494,7 +494,7 @@ export class CalendarNoteView extends ItemView {
       const target = cell.querySelector('.fc-list-day-cushion') ?? cell;
       let button = target.querySelector<HTMLButtonElement>(':scope > .cn-date-open');
       if (!button) {
-        button = document.createElement('button');
+        button = createEl('button');
         button.className = 'cn-date-open'; button.type = 'button';
         button.textContent = dateAt(date, this.settings.timeZone).locale('en').format('ddd, MMM D');
         button.setAttribute('aria-label', `Open Daily Note for ${date}`);
@@ -605,7 +605,7 @@ export class CalendarNoteView extends ItemView {
   /** A Project task: put it at a time on the day under the pointer, or open its line. */
   private showTaskMenu(task: TaskEvent, e: MouseEvent): void {
     // The day cell under the pointer, not the cell a multi-day bar starts in.
-    const under = document.elementsFromPoint(e.clientX, e.clientY)
+    const under = activeDocument.elementsFromPoint(e.clientX, e.clientY)
       .filter(el => !el.closest('.fc-event'))
       .map(el => (el as HTMLElement).closest<HTMLElement>('[data-date]')?.dataset.date?.slice(0, 10)).find(Boolean);
     const day = under && under >= task.start && under < task.end ? under : task.start;

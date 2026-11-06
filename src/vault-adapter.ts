@@ -33,7 +33,7 @@ export function createObsidianStoreIO(app: App, plugin: Plugin): StoreIO {
       if (before === after) return;
       if (after === null) {
         const file = fileAt(path);
-        if (file) await app.vault.delete(file);
+        if (file) await app.fileManager.trashFile(file);
       } else if (before === null) {
         await ensureParent(path);
         await app.vault.create(path, after);

@@ -255,15 +255,15 @@ export class ChangeHistoryModal extends Modal {
     const zone = this.getSettings().timeZone;
     const card = this.contentEl.createDiv({ cls: 'cn-history-entry' });
     card.createEl('strong', { text: `${entry.title} · ${entry.sourceName}` });
-    card.createEl('div', { text: `${entry.status.replaceAll('_', ' ')} · ${dateAt(entry.detectedAt, zone).format('lll')}`, cls: 'cn-muted' });
+    card.createDiv({ text: `${entry.status.replaceAll('_', ' ')} · ${dateAt(entry.detectedAt, zone).format('lll')}`, cls: 'cn-muted' });
     const range = (value?: { start: string; end: string; allDay: boolean }) => value
       ? `${dateAt(value.start, zone).format(value.allDay ? 'YYYY-MM-DD' : 'YYYY-MM-DD HH:mm')} → ${dateAt(value.end, zone).format(value.allDay ? 'YYYY-MM-DD' : 'YYYY-MM-DD HH:mm')}` : '—';
-    card.createEl('div', { text: `Source: ${range(entry.beforeSource)} → ${range(entry.afterSource)}` });
-    card.createEl('div', { text: `Effective: ${range(entry.beforeEffective)} → ${range(entry.afterEffective)}` });
-    if (entry.notePath) card.createEl('div', { text: `Event Note: ${entry.notePath}` });
-    if (entry.beforeDailyPath || entry.afterDailyPath) card.createEl('div', {
+    card.createDiv({ text: `Source: ${range(entry.beforeSource)} → ${range(entry.afterSource)}` });
+    card.createDiv({ text: `Effective: ${range(entry.beforeEffective)} → ${range(entry.afterEffective)}` });
+    if (entry.notePath) card.createDiv({ text: `Event Note: ${entry.notePath}` });
+    if (entry.beforeDailyPath || entry.afterDailyPath) card.createDiv({
       text: `Daily Note: ${entry.beforeDailyPath ?? '—'} → ${entry.afterDailyPath ?? '—'}` });
-    if (entry.error) card.createEl('div', { text: entry.error, cls: 'cn-validation' });
+    if (entry.error) card.createDiv({ text: entry.error, cls: 'cn-validation' });
     const actions = card.createDiv({ cls: 'cn-history-actions' });
     const action = (label: string, run: () => Promise<void>) => {
       const button = actions.createEl('button', { text: label });

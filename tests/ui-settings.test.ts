@@ -5,14 +5,15 @@ import { DEFAULT_SETTINGS, resolveDailySettings, resolveWeekRules, resolveWeekly
 
 test('Calendar system locale comes from the host Moment setting', () => {
   const host = globalThis as unknown as Record<string, unknown>;
-  const previous = host.moment;
-  host.moment = { locale: () => 'en-gb' };
+  // Obsidian exposes its Moment instance as window.moment.
+  const previous = host.window;
+  host.window = { moment: { locale: () => 'en-gb' } };
   try {
     const app = { plugins: { enabledPlugins: new Set(['calendar']), plugins: {
       calendar: { settings: { localeOverride: 'system-default', weekStart: 0 } },
     } } } as unknown as App;
     assert.deepEqual(resolveWeekRules(app, DEFAULT_SETTINGS), { locale: 'en-gb', weekMode: 'calendar', weekStart: 'sunday' });
-  } finally { host.moment = previous; }
+  } finally { host.window = previous; }
 });
 
 test('enabled note providers override fallbacks without changing their blank root folder', () => {

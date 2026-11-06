@@ -20,7 +20,7 @@ import { subscriptionFailureMessage } from './subscription-settings';
 import { holidayDays, showsEvent, type HolidayDay } from './holidays';
 import type { TaskEvent } from './tasks';
 
-export const CALENDAR_VIEW_TYPE = 'calendar-pro-calendar';
+export const CALENDAR_VIEW_TYPE = 'event-notes-calendar';
 export const CALENDAR_VIEWS = [
   ['timeGridWeek', 'Week'], ['timeGridDay', 'Day'], ['dayGridMonth', 'Month'],
   ['multiMonthYear', 'Year'], ['customDays', 'Custom days'], ['listWeek', 'List'],
@@ -66,13 +66,13 @@ export class CalendarNoteView extends ItemView {
     this.actions = new EventActions(plugin, () => this.leaf);
   }
   getViewType(): string { return CALENDAR_VIEW_TYPE; }
-  getDisplayText(): string { return 'Calendar Pro'; }
+  getDisplayText(): string { return 'Calendar'; }
   getIcon(): string { return 'calendar-days'; }
 
   async onOpen(): Promise<void> {
     const root = this.containerEl.children[1] as HTMLElement;
     root.empty();
-    root.addClass('calendar-pro-view');
+    root.addClass('event-notes-view');
     const shell = root.createDiv({ cls: 'cn-shell' });
     this.shellEl = shell;
     this.sidebarRestore = shell.createEl('button', { cls: 'cn-sidebar-restore', attr: {

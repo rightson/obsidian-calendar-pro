@@ -18,6 +18,11 @@ test('each token kind is recognised', () => {
   assert.deepEqual(parseToken('@小王', today), { kind: 'assignee', name: '小王', style: 'at' });
   assert.deepEqual(parseToken('@[[小王]]', today), { kind: 'assignee', name: '小王', style: 'link' });
   assert.deepEqual(parseToken('@[[People/AAA|AAA]]', today), { kind: 'assignee', name: 'People/AAA', style: 'link', alias: 'AAA' });
+  // A link to an @-prefixed person note, as At People and Mention Things insert.
+  assert.deepEqual(parseToken('[[@小王]]', today), { kind: 'assignee', name: '@小王', style: 'link' });
+  assert.deepEqual(parseToken('[[People/@小王|小王]]', today), { kind: 'assignee', name: 'People/@小王', style: 'link', alias: '小王' });
+  // A plain link stays a remark: (見 [[規格]]) is not a person.
+  assert.equal(parseToken('[[規格]]', today), undefined);
   // The earlier `by [[name]]` form is still read.
   assert.deepEqual(parseToken('by [[小王]]', today), { kind: 'assignee', name: '小王', style: 'link' });
   assert.deepEqual(parseToken('by [[People/AAA|AAA]]', today), { kind: 'assignee', name: 'People/AAA', style: 'link', alias: 'AAA' });
@@ -135,6 +140,18 @@ test('a checkbox stands for 100%', () => {
   assert.equal(updateTaskLine('- [ ] A (90%)', { progress: 100 }, today), '- [x] A');
   assert.equal(updateTaskLine('- [x] A', { progress: 40 }, today), '- [ ] A (40%)');
   assert.equal(updateTaskLine('- [ ] A', { progress: 10 }, today), '- [ ] A (10%)');
+});
+
+test('linked assignees are written by the person note\'s name', async () => {
+  const { assigneeText, personName } = await import('../src/annotation');
+  assert.equal(assigneeText({ name: '小王', style: 'link' }), '@[[小王]]');
+  assert.equal(assigneeText({ name: '@小王', style: 'link' }), '[[@小王]]');
+  assert.equal(assigneeText({ name: 'People/@小王', style: 'link', alias: '小王' }), '[[People/@小王|小王]]');
+  assert.equal(updateTaskLine('- A (@小王)', { assignees: [{ name: '@小王', style: 'link' }] }, today), '- A ([[@小王]])');
+  // Every form names the same person.
+  for (const assignee of [{ name: '小王', style: 'at' as const }, { name: '小王', style: 'link' as const }, { name: '@小王', style: 'link' as const }, { name: 'People/@小王', style: 'link' as const }]) {
+    assert.equal(personName(assignee), '小王');
+  }
 });
 
 test('a block ID is added once', () => {

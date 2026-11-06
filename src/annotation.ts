@@ -31,7 +31,21 @@ export interface Annotation {
   seps: string[];
 }
 
+/**
+ * A person on a task. For `link`, `name` is the link target as written, such
+ * as `小王`, `@小王` in `[[@小王]]`, or `People/@小王`.
+ */
 export type Assignee = { name: string; style: 'at' | 'link'; alias?: string };
+
+/** Whether a link target names an @-prefixed person note, as in `[[@小王]]`. */
+export function isAtNote(target: string): boolean {
+  return target.split('/').pop()!.startsWith('@');
+}
+
+/** The person's name for display, filters, and colours, the same whichever form names them. */
+export function personName(assignee: Assignee): string {
+  return assignee.style === 'at' ? assignee.name : assignee.name.split('/').pop()!.replace(/^@/, '');
+}
 
 /** What an annotation says, independent of how it is spelled. */
 export interface TaskFields {
@@ -126,6 +140,9 @@ export function parseToken(text: string, today: string): Token | undefined {
   if (at) return { kind: 'assignee', name: at[1], style: 'at' };
   const link = /^(?:@|by\s+)\[\[([^\][|#^]+)(?:\|([^\]]+))?\]\]$/.exec(text);
   if (link) return { kind: 'assignee', name: link[1].trim(), style: 'link', ...link[2] ? { alias: link[2] } : {} };
+  // A link to an @-prefixed person note, as At People and Mention Things insert.
+  const atNote = /^\[\[([^\][|#^]+)(?:\|([^\]]+))?\]\]$/.exec(text);
+  if (atNote && isAtNote(atNote[1].trim())) return { kind: 'assignee', name: atNote[1].trim(), style: 'link', ...atNote[2] ? { alias: atNote[2] } : {} };
   return undefined;
 }
 
@@ -231,7 +248,10 @@ export function formatDate(date: string, today: string, preferIso = false): stri
 }
 
 export function assigneeText(assignee: Assignee): string {
-  return assignee.style === 'at' ? `@${assignee.name}` : `@[[${assignee.name}${assignee.alias ? `|${assignee.alias}` : ''}]]`;
+  if (assignee.style === 'at') return `@${assignee.name}`;
+  const link = `[[${assignee.name}${assignee.alias ? `|${assignee.alias}` : ''}]]`;
+  // An @-prefixed person note already reads as a mention; any other gets the @ in front.
+  return isAtNote(assignee.name) ? link : `@${link}`;
 }
 
 export type Schedule = { start: string; end: string } | { due: string } | null;

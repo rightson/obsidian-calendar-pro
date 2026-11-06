@@ -11,7 +11,7 @@ A calendar for Obsidian that keeps your events as Markdown notes in your Vault.
 - **Your schedule beside your notes.** An events sidebar shows a phone-style day timeline or a two-week list, and a month calendar sidebar marks event days and existing Daily Notes.
 - **Calendar subscriptions.** Add read-only HTTPS or `webcal://` feeds next to your local events. Holiday calendars shade their days.
 - **Finds and fixes note problems.** When a copied note duplicates an `event_id`, **Review Event Note problems** shows the copies side by side, highlights the differences, recommends which to keep, and applies the fix you choose. Notes with broken properties can be restored to their last valid version.
-- **Projects as Gantt charts.** Open a note's outline as a WBS table or a Gantt chart. Dates, progress, and assignees live in brackets at the end of each line, such as `(30%, 11/1-11/6, @小王)` or `@[[小王]]` for a linked person, and dated tasks appear in the calendar. See [Projects and Gantt](docs/manuals/USER-GUIDE.md#projects-and-gantt).
+- **Projects as Gantt charts.** Open a note's outline as a WBS table or a Gantt chart. Dates, progress, and assignees live in brackets at the end of each line, such as `(30%, 11/1-11/6, @小王)` or `@[[小王]]` / `[[@小王]]` for a linked person, and dated tasks appear in the calendar. See [Projects and Gantt](docs/manuals/USER-GUIDE.md#projects-and-gantt).
 - **Local and private.** No account or telemetry. The only network requests fetch the feeds you add. See [privacy and compatibility](docs/manuals/USER-GUIDE.md#privacy-and-compatibility).
 
 | Event details | Event Note problems |

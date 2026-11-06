@@ -40,9 +40,22 @@ You don't have to type the brackets. Edit a cell in **Table**, or drag a row fro
 
 ## 3. Track progress
 
-- **Table:** edit any cell. **+10**, **+20**, and **Done** raise a task's progress. Every change offers **Undo**.
+- **Table:** every cell reads as plain text until you click it. Type and press Enter. Point at a row, or tab into it, to show **+10**, **+20**, and **Done** beside the %. On a touch screen, tap the % instead. Every change offers **Undo**.
 - **Chart:** drag a bar to move it, or drag either end to change its dates. A date written on a summary row is that branch's target. The target turns red when a task below finishes later.
 - **Calendar:** dated tasks appear in the all-day row in their own dark colour. Click one to schedule time for it that day as an Event Note, or to jump to its line in the note.
+
+![Table, with the progress buttons of the hovered row](../images/gantt-table-light.png)
+
+## 4. Rename, fold, and zoom
+
+- **Rename:** click a task's name in Table or in the Chart's Task column. Only the name changes. Remark brackets after it, the dates and progress, and any `^id` stay as written. If the task links to its own Task Note, the note itself is renamed and Obsidian updates the links to it.
+- **Fold:** click the arrow beside a row. Alt-click (Option-click on a Mac) opens or closes everything below it. **Levels 1 / 2 / 3** show that many levels, and **Expand all** / **Collapse all** do the rest. A collapsed branch still shows its full date range in Chart.
+- **Zoom:** choose **Day**, **Week**, **Month**, or **Quarter**, or hold Ctrl (Cmd on a Mac) and scroll over the chart. The ⤢ button fits the whole project on screen. Dragging still moves bars by whole days.
+- **Task column:** drag its right edge to make it wider or narrower. Double-click the edge to reset it.
+
+Calendar Pro remembers folding, zoom, and the column width for each Gantt tab, never in the note.
+
+![Chart at week zoom, with 設計 collapsed](../images/gantt-chart-light.png)
 
 ## More
 

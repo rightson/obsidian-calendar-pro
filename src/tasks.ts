@@ -193,13 +193,66 @@ export function demoteLine(text: string, today: string): { text: string; target:
   return { text: renderTaskLine({ ...line, title, ...line.annotation ? {} : { gap: '' } }), target: link.target };
 }
 
-/** Replace a line's title, keeping its marker, annotation, and block ID. */
-export function retitleLine(text: string, today: string, title: string): string {
+const REMARK = /\s*(?:\([^()（）]*\)|（[^()（）]*）)$/;
+
+/**
+ * A title split into the name the user edits and the remark brackets after
+ * it, as in `前端 （跟 AAA 確認）`. The annotation is not part of a title, so
+ * these brackets are always the user's own; a title that is only brackets is
+ * all name.
+ */
+export function splitTitle(title: string): { name: string; gap: string; remark: string } {
+  let at = title.length;
+  for (let match = REMARK.exec(title); match; match = REMARK.exec(title.slice(0, at))) at = match.index;
+  const name = title.slice(0, at);
+  if (!name.trim() || at === title.length) return { name: title, gap: '', remark: '' };
+  const rest = title.slice(at);
+  const gap = /^\s*/.exec(rest)![0];
+  return { name, gap, remark: rest.slice(gap.length) };
+}
+
+/**
+ * Replace a line's task name. The marker, checkbox, remark brackets after the
+ * name, annotation, and block ID are kept as written.
+ */
+export function retitleLine(text: string, today: string, name: string): string {
   const line = parseTaskLine(text, today);
   if (!line) throw new Error('Only headings and list items can be renamed here.');
-  const clean = title.replace(/[\r\n]+/g, ' ').trim();
+  const clean = name.replace(/[\r\n]+/g, ' ').trim();
   if (!clean) throw new Error('Enter a task name.');
-  return renderTaskLine({ ...line, title: clean, ...line.annotation ? {} : { gap: '' } });
+  const { gap, remark } = splitTitle(line.title);
+  const title = remark ? `${clean}${gap}${remark}` : clean;
+  return renderTaskLine({ ...line, title, ...line.annotation ? {} : { gap: '' } });
+}
+
+/** Why `name` cannot be a Task Note's file name, or undefined when it can. */
+export function taskNoteNameError(name: string): string | undefined {
+  const clean = name.trim();
+  if (!clean) return 'Enter a task name.';
+  if (/[\\/:*?"<>|#^[\]]/.test(clean)) return 'A Task Note name cannot contain \\ / : * ? " < > | # ^ [ or ].';
+  if (clean.startsWith('.')) return 'A Task Note name cannot start with a dot.';
+  return undefined;
+}
+
+/** Point a line's Task Note link at `target`, keeping its alias and everything else on the line. */
+export function retargetLine(text: string, today: string, target: string): string {
+  const line = parseTaskLine(text, today);
+  const parts = line && splitTitle(line.title);
+  const link = parts && linkedTaskNote(parts.name);
+  if (!line || !parts || !link) throw new Error('This task does not link to a Task Note.');
+  const name = `[[${target}${link.alias ? `|${link.alias}` : ''}]]`;
+  const title = parts.remark ? `${name}${parts.gap}${parts.remark}` : name;
+  return renderTaskLine({ ...line, title, ...line.annotation ? {} : { gap: '' } });
+}
+
+/** The node and every node below it. */
+export function subtree(node: TaskNode): TaskNode[] {
+  return [node, ...node.children.flatMap(subtree)];
+}
+
+/** The rows to collapse so that only the first `level` levels show. */
+export function collapsedBelow(nodes: TaskNode[], level: number): Set<string> {
+  return new Set(nodes.filter(node => node.children.length && node.depth >= level - 1).map(node => node.key));
 }
 
 /** The node's own assignees as typed in a cell: `@name`, `@[[name]]`, `[[@name]]`, `[[name]]`, `by [[name]]`, or a bare name. */

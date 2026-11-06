@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { canStep, demoteLine, isUnscheduled, linkedTaskNote, parseAssigneeInput, parseProject, promoteLine, retitleLine, stepProgress, taskNoteName, upgradeAssignee, type TaskNode } from '../src/tasks';
+import {
+  canStep, collapsedBelow, demoteLine, isUnscheduled, linkedTaskNote, parseAssigneeInput, parseProject, promoteLine, retargetLine, retitleLine,
+  splitTitle, stepProgress, subtree, taskNoteName, taskNoteNameError, upgradeAssignee, type TaskNode,
+} from '../src/tasks';
 import { dateHint, assignHint, taskHints } from '../src/task-hints';
 
 const today = '2026-11-05';
@@ -169,6 +172,55 @@ test('promote and demote replace only the title', () => {
   assert.throws(() => promoteLine(promoted, today, 'x'));
   assert.throws(() => demoteLine('- 視覺稿', today));
   assert.equal(retitleLine('- [x] Old (30%) ^a', today, 'New'), '- [x] New (30%) ^a');
+});
+
+test('a title splits into the editable name and the remark brackets after it', () => {
+  assert.deepEqual(splitTitle('前端 （跟 AAA 確認）'), { name: '前端', gap: ' ', remark: '（跟 AAA 確認）' });
+  assert.deepEqual(splitTitle('A (draft)(v2)'), { name: 'A', gap: ' ', remark: '(draft)(v2)' });
+  assert.deepEqual(splitTitle('B（備註）'), { name: 'B', gap: '', remark: '（備註）' });
+  assert.deepEqual(splitTitle('Plain'), { name: 'Plain', gap: '', remark: '' });
+  // Brackets in the middle are part of the name; a title that is only brackets is all name.
+  assert.deepEqual(splitTitle('Call (Bob) today'), { name: 'Call (Bob) today', gap: '', remark: '' });
+  assert.deepEqual(splitTitle('（只有備註）'), { name: '（只有備註）', gap: '', remark: '' });
+  assert.deepEqual(splitTitle('[[Task]] (note)'), { name: '[[Task]]', gap: ' ', remark: '(note)' });
+});
+
+test('renaming rewrites only the name', () => {
+  // Indentation, marker, checkbox, annotation, and block ID stay as written.
+  assert.equal(retitleLine('    - [ ] 視覺稿 （30％，11/4-11/10） ^v1', today, '主視覺'), '    - [ ] 主視覺 （30％，11/4-11/10） ^v1');
+  assert.equal(retitleLine('\t* [x] Old  (30%,  11/6) ^a', today, 'New'), '\t* [x] New  (30%,  11/6) ^a');
+  assert.equal(retitleLine('12) Old', today, 'New'), '12) New');
+  // A remark in brackets after the name is kept, and so is the space before it.
+  assert.equal(retitleLine('    - 前端 （跟 AAA 確認）', today, '前端頁面'), '    - 前端頁面 （跟 AAA 確認）');
+  assert.equal(retitleLine('- B（備註） (11/6)', today, 'C'), '- C（備註） (11/6)');
+  assert.equal(retitleLine('- A (x) (y) (30%) ^id', today, 'Z'), '- Z (x) (y) (30%) ^id');
+  // Headings keep their level and closing hashes.
+  assert.equal(retitleLine('## 設計 (11/20) ##', today, 'Design'), '## Design (11/20) ##');
+  // Surrounding spaces and line breaks in the new name are dropped.
+  assert.equal(retitleLine('- Old', today, '  New\nname  '), '- New name');
+  assert.throws(() => retitleLine('- Old (30%)', today, '   '), /Enter a task name/);
+  assert.throws(() => retitleLine('plain paragraph', today, 'x'));
+});
+
+test('Task Note names and links', () => {
+  assert.equal(taskNoteNameError('視覺稿 v2'), undefined);
+  assert.match(taskNoteNameError('') ?? '', /Enter a task name/);
+  assert.match(taskNoteNameError('a/b') ?? '', /cannot contain/);
+  assert.match(taskNoteNameError('x#1') ?? '', /cannot contain/);
+  assert.match(taskNoteNameError('.hidden') ?? '', /dot/);
+  assert.equal(retargetLine('  - [ ] [[Old]] (30%) ^a', today, 'New'), '  - [ ] [[New]] (30%) ^a');
+  assert.equal(retargetLine('- [[Tasks/Old|後端]] （備註） (11/6)', today, 'Tasks/New'), '- [[Tasks/New|後端]] （備註） (11/6)');
+  assert.throws(() => retargetLine('- Old', today, 'New'));
+});
+
+test('outline levels collapse the rows from that depth down', () => {
+  const { nodes } = parseProject(EXAMPLE, today);
+  const titles = (keys: Set<string>) => nodes.filter(node => keys.has(node.key)).map(node => node.title);
+  assert.deepEqual(titles(collapsedBelow(nodes, 1)), ['網站改版', '設計', '視覺稿', '開發', '行銷']);
+  assert.deepEqual(titles(collapsedBelow(nodes, 2)), ['設計', '視覺稿', '開發']);
+  assert.deepEqual(titles(collapsedBelow(nodes, 3)), ['視覺稿']);
+  assert.deepEqual(titles(collapsedBelow(nodes, 4)), []);
+  assert.deepEqual(subtree(byTitle(nodes, '網站改版')).filter(node => node.children.length).map(node => node.title), ['網站改版', '設計', '視覺稿', '開發']);
 });
 
 test('assignee cells and the @ to [[ ]] upgrade', () => {

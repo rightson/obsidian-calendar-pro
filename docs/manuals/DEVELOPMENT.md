@@ -132,7 +132,7 @@ Gantt native checks (not yet run; use a disposable Vault with `npm run dev -- /a
 - Milestone violation: change `設計 (11/20)` to `設計 (11/8)` and confirm the target turns red in Table and Chart with a tooltip naming 11/10. Drag 視覺稿 two days left so it ends 11/8 and confirm the red clears.
 - With the note open in a split, press **+10** on 視覺稿 and check the editor changes in place without moving the cursor, Ctrl/Cmd-Z in the editor reverts it, and the notice's **Undo** reverts it too. Repeat with the note closed.
 - Drag a bar, both ends, the 11/9 API deadline after changing it to a deadline, and the ◆ milestone; drop 社群貼文 from **Unscheduled**. Check each line's text and that full-width brackets and separators are kept.
-- Click the 下週一 chip on 社群貼文, the **Assign to** chip on a line with 找小王, **＋** for `[[AAA]]` (creates `People/AAA.md`), and **[[ ]]** for `@小王`.
+- Click the 下週一 chip on 社群貼文, the **Assign to** chip on a line with 找小王, **＋** for `@[[AAA]]` (creates `People/AAA.md`), and **[[ ]]** for `@小王` (becomes `@[[小王]]`; with a `People/@小王.md` note it becomes `[[@小王]]`). Confirm a `[[@AAA]]` assignee from At People is shown as AAA in the assignee filter.
 - Promote 視覺稿 to a Task Note, then demote it and confirm the empty note is offered for trash.
 - Compact table in light and dark themes: cells show no border until focused, a focused field does not change the row height, and an unreadable value shows its message over the row below.
 - Progress buttons: hidden until the row is hovered or a field in it has focus, the columns do not shift when they appear, and on a touch device a tap on the % cell shows them.

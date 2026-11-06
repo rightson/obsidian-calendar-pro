@@ -16,7 +16,7 @@ gantt: true
     - 視覺稿 (30%, 11/4-11/10, @小王)
       - 補充說明：配色待定
   - 開發
-    - API (11/9-11/22, by [[AAA]])
+    - API (11/9-11/22, @[[AAA]])
     - 前端 （跟 AAA 確認）
 - 行銷
   - 發新聞稿 (◆ 11/30)
@@ -133,6 +133,11 @@ test('a summary date is the branch target; a later rolled-up end is late', () =>
   assert.equal(range.late, false);
 });
 
+test('[[@name]] assignees are read inside an annotation and inherited', () => {
+  const { nodes } = parseProject(['- P (11/1, [[@小王]])', '  - A (11/2)'].join('\n'), today);
+  assert.deepEqual(byTitle(nodes, 'A').assignees, [{ name: '@小王', style: 'link' }]);
+});
+
 test('assignees are inherited until a node names its own', () => {
   const { nodes } = parseProject(['- P (@PM)', '  - A (11/1)', '    - A1 (11/2)', '  - B (11/3, @小王)', '    - B1 (11/4)'].join('\n'), today);
   assert.deepEqual(byTitle(nodes, 'A').assignees, [{ name: 'PM', style: 'at' }]);
@@ -219,12 +224,14 @@ test('outline levels collapse the rows from that depth down', () => {
 });
 
 test('assignee cells and the @ to [[ ]] upgrade', () => {
-  assert.deepEqual(parseAssigneeInput('小王, by [[AAA]]、[[B|Bee]]'), [
-    { name: '小王', style: 'at' }, { name: 'AAA', style: 'link' }, { name: 'B', style: 'link', alias: 'Bee' }]);
+  assert.deepEqual(parseAssigneeInput('小王, @[[AAA]]、[[B|Bee]], by [[C]], [[@D]]'), [
+    { name: '小王', style: 'at' }, { name: 'AAA', style: 'link' }, { name: 'B', style: 'link', alias: 'Bee' }, { name: 'C', style: 'link' }, { name: '@D', style: 'link' }]);
   assert.deepEqual(parseAssigneeInput(''), []);
   assert.equal(parseAssigneeInput('two words'), undefined);
   assert.deepEqual(upgradeAssignee([{ name: '小王', style: 'at' }, { name: 'B', style: 'at' }], '小王'),
     [{ name: '小王', style: 'link' }, { name: 'B', style: 'at' }]);
+  // With a `@小王` person note in the Vault, the link targets it.
+  assert.deepEqual(upgradeAssignee([{ name: '小王', style: 'at' }], '小王', '@小王'), [{ name: '@小王', style: 'link' }]);
 });
 
 test('fixed date phrases resolve against today (Thursday 2026-11-05)', () => {

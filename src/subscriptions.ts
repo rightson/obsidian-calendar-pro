@@ -61,7 +61,7 @@ function retryDelay(failures: number): number {
 }
 
 async function urlFingerprint(url: string): Promise<string> {
-  const digest = await globalThis.crypto.subtle.digest("SHA-256", new TextEncoder().encode(url));
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(url));
   return Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
 }
 
@@ -74,7 +74,7 @@ interface SourceGuard {
 
 export class SubscriptionService {
   private range?: CalendarRange;
-  private timer?: ReturnType<typeof setInterval>;
+  private timer?: number;
   private refreshQueue: Promise<unknown> = Promise.resolve();
   private generation = 0;
   private disposed = false;
@@ -155,12 +155,12 @@ export class SubscriptionService {
   }
 
   start(): void {
-    if (this.timer) clearInterval(this.timer);
+    if (this.timer) window.clearInterval(this.timer);
     this.timer = undefined;
     this.generation++;
     this.disposed = false;
     const minutes = Math.max(1, this.store.state.settings.syncIntervalMinutes || 15);
-    this.timer = setInterval(() => {
+    this.timer = window.setInterval(() => {
       if (this.range) void this.refresh(this.range).catch(() => undefined);
     }, minutes * 60_000);
   }
@@ -168,7 +168,7 @@ export class SubscriptionService {
   dispose(): void {
     this.generation++;
     this.disposed = true;
-    if (this.timer) clearInterval(this.timer);
+    if (this.timer) window.clearInterval(this.timer);
     this.timer = undefined;
   }
 

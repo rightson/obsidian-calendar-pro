@@ -37,7 +37,7 @@ export class MonthsView extends ItemView {
     root.addClass('cn-months-view');
     const heading = root.createDiv({ cls: 'cn-months-heading' });
     const prev = heading.createEl('button', { text: '‹', attr: { type: 'button', 'aria-label': 'Previous month' } });
-    this.headingTitleEl = heading.createEl('span', { cls: 'cn-months-title' });
+    this.headingTitleEl = heading.createSpan({ cls: 'cn-months-title' });
     const today = heading.createEl('button', { text: 'Today', attr: { type: 'button', 'aria-label': 'Show this month first' } });
     const next = heading.createEl('button', { text: '›', attr: { type: 'button', 'aria-label': 'Next month' } });
     this.monthsEl = root.createDiv({ cls: 'cn-months' });
@@ -68,7 +68,7 @@ export class MonthsView extends ItemView {
 
   async onClose(): Promise<void> {
     this.resizeObserver?.disconnect();
-    if (this.frame) cancelAnimationFrame(this.frame);
+    if (this.frame) window.cancelAnimationFrame(this.frame);
   }
 
   /** Called by the plugin when events, notes, or settings change. */
@@ -80,8 +80,8 @@ export class MonthsView extends ItemView {
     this.render();
   }
   private scheduleRender(): void {
-    if (this.frame) cancelAnimationFrame(this.frame);
-    this.frame = requestAnimationFrame(() => { this.frame = undefined; this.render(); });
+    if (this.frame) window.cancelAnimationFrame(this.frame);
+    this.frame = window.requestAnimationFrame(() => { this.frame = undefined; this.render(); });
   }
 
   private render(): void {

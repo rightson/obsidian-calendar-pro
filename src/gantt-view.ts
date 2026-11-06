@@ -549,7 +549,7 @@ export class GanttView extends ItemView {
         input.setAttribute('aria-invalid', 'true');
         input.title = parsed.error;
         // Shown over the rows below, so a mistake does not make the row taller.
-        if (!error) { error = document.body.createDiv({ cls: 'cp-cell-error' }); this.errors.add(error); }
+        if (!error) { error = activeDocument.body.createDiv({ cls: 'cp-cell-error' }); this.errors.add(error); }
         error.setText(parsed.error);
         const rect = input.getBoundingClientRect();
         error.setCssProps({ left: `${rect.left}px`, top: `${rect.bottom + 2}px` });
@@ -926,7 +926,7 @@ export class GanttView extends ItemView {
         if (event.button !== 0) return;
         event.preventDefault();
         chip.setPointerCapture(event.pointerId);
-        const ghost = document.body.createDiv({ cls: 'cp-drag-ghost', text: plainTitle(node.title) });
+        const ghost = activeDocument.body.createDiv({ cls: 'cp-drag-ghost', text: plainTitle(node.title) });
         const place = (e: PointerEvent) => ghost.setCssProps({ left: `${e.clientX + 8}px`, top: `${e.clientY + 8}px` });
         place(event);
         const dayAt = (e: PointerEvent): string | undefined => {

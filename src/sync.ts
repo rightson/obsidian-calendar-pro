@@ -17,7 +17,7 @@ const sameSpan = (a: CalendarEvent, b: CalendarEvent): boolean => {
     ? a.start.slice(0, 10) === b.start.slice(0, 10) && a.end.slice(0, 10) === b.end.slice(0, 10)
     : Date.parse(a.start) === Date.parse(b.start) && Date.parse(a.end) === Date.parse(b.end);
 };
-const nextId = (): string => globalThis.crypto.randomUUID();
+const nextId = (): string => crypto.randomUUID();
 
 class StaleSourcePlan extends Error {}
 export type SourceCurrent = (state: StoredState) => boolean;

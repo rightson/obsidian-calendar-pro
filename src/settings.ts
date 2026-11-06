@@ -156,7 +156,7 @@ export function resolveWeeklySettings(app: App, settings: PluginSettings): Resol
 export function resolveWeekRules(app: App, settings: PluginSettings): WeekRules {
   const calendar = communitySettings(app, 'calendar');
   const localeSetting = calendar?.localeOverride ?? calendar?.overrideLocale;
-  const hostMoment = (globalThis as typeof globalThis & { moment?: { locale?: () => string } }).moment;
+  const hostMoment = typeof window === 'undefined' ? undefined : (window as Window & { moment?: { locale?: () => string } }).moment;
   const hostLocale = typeof hostMoment?.locale === 'function' ? hostMoment.locale() : undefined;
   const locale = typeof localeSetting === 'string' && localeSetting.trim() && localeSetting !== 'system-default'
     ? localeSetting.toLowerCase() : calendar ? hostLocale || settings.locale : settings.locale;

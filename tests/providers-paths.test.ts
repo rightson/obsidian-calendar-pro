@@ -64,8 +64,9 @@ test('Calendar supports each explicit weekday and locale default as the week sta
 
 test('Calendar locale override and host locale resolve without changing host settings', () => {
   const host = globalThis as unknown as Record<string, unknown>;
-  const previous = host.moment;
-  host.moment = { locale: () => 'en-gb' };
+  // Obsidian exposes its Moment instance as window.moment.
+  const previous = host.window;
+  host.window = { moment: { locale: () => 'en-gb' } };
   try {
     assert.deepEqual(resolveWeekRules(app({ calendar: { options: { localeOverride: 'en', weekStart: 'sunday' } } }), settings({ locale: 'zh-tw' })),
       { locale: 'en', weekMode: 'calendar', weekStart: 'sunday' });
@@ -74,7 +75,7 @@ test('Calendar locale override and host locale resolve without changing host set
     assert.deepEqual(resolveWeekRules(app({}, []), settings({ locale: 'zh-tw' })),
       { locale: 'zh-tw', weekMode: 'calendar', weekStart: 'locale' });
   } finally {
-    host.moment = previous;
+    host.window = previous;
   }
 });
 

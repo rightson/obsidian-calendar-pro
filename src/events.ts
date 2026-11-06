@@ -1,4 +1,4 @@
-import type { App, TFile, WorkspaceLeaf } from 'obsidian';
+import type { App, TAbstractFile, TFile, WorkspaceLeaf } from 'obsidian';
 import { dateAt, eventCalendarDate, weekInfo } from './date';
 import { dailyNotePath, eventNotePath, followPatternPath, weeklyNotePath } from './paths';
 import { resolveDailySettings, resolveWeeklySettings, resolveWeekRules } from './settings';
@@ -7,6 +7,14 @@ import { CalendarStore, type PlannedWrite } from './store';
 import type { CalendarEvent, Interval, PluginSettings } from './types';
 import { adoptEventFrontmatter, assertValidFrontmatter, detachEventFrontmatter, eventBullet, eventBulletText, hasEventBullet, managedEventKeys, newEventNote, parseEventNote, removeDuplicateEventNoteTitle, removeEventBullets, restoreEventFrontmatter, upsertEventBullet, validateEventInterval, validateInterval, writeEventFrontmatter } from './notes';
 import { mergeNoteText, noteEvent, type EventNoteProblem, type NoteFacts, type NoteReference } from './note-problems';
+
+/**
+ * Narrows a Vault entry to a file. TFile is only imported as a type so the
+ * service runs in the Node tests, which use plain objects for Vault entries.
+ */
+function isFile(entry: TAbstractFile | null): entry is TFile {
+  return entry !== null && 'extension' in entry;
+}
 
 export interface EventWritePlan {
   writes: PlannedWrite[];
@@ -142,9 +150,9 @@ export class EventNoteService {
 
   private async openPath(path: string, target?: () => WorkspaceLeaf): Promise<void> {
     const file = this.app.vault.getAbstractFileByPath(path);
-    if (!file || !('extension' in file) || file.extension !== 'md') throw new Error(`Note is unavailable: ${path}`);
+    if (!isFile(file) || file.extension !== 'md') throw new Error(`Note is unavailable: ${path}`);
     const leaf = target?.() ?? this.app.workspace.getLeaf(true);
-    await leaf.openFile(file as TFile);
+    await leaf.openFile(file);
     // A tab added to another pane is not necessarily the one it shows.
     if (target) await this.app.workspace.revealLeaf(leaf);
   }
@@ -232,7 +240,7 @@ export class EventNoteService {
     for (const [id, currentPath] of paths) {
       const linked = this.store.state.noteLinks[id];
       if (linked && linked.eventPath !== currentPath && validIds.has(id)) {
-        try { await this.handleRename({ path: currentPath, extension: 'md' } as TFile, linked.eventPath); }
+        try { await this.handleRename({ path: currentPath, extension: 'md' }, linked.eventPath); }
         catch (error) { report('error', currentPath, error instanceof Error ? error.message : 'Could not relink renamed Event Note.'); }
       }
     }
@@ -348,7 +356,8 @@ export class EventNoteService {
     }
     const resolved = (this.app.metadataCache as { resolvedLinks?: Record<string, Record<string, number>> } | undefined)?.resolvedLinks ?? {};
     return paths.map(path => {
-      const file = this.app.vault.getAbstractFileByPath(path) as TFile | null;
+      const entry = this.app.vault.getAbstractFileByPath(path);
+      const file = isFile(entry) ? entry : null;
       const references: NoteReference[] = [];
       for (const [dailyPath, daily] of dailies) {
         for (const line of eventBulletText(daily, [path])) references.push({ path: dailyPath, kind: 'daily', line });
@@ -848,7 +857,7 @@ export class EventNoteService {
     });
   }
 
-  async handleRename(file: TFile, oldPath: string): Promise<void> {
+  async handleRename(file: Pick<TFile, 'path' | 'extension'>, oldPath: string): Promise<void> {
     return this.serialized(async () => {
       if (file.extension !== 'md') return;
       const remembered = this.lastValid.get(oldPath);

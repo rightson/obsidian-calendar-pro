@@ -19,7 +19,7 @@ interface LayoutItem { parent?: LayoutItem | null; children?: LayoutItem[]; dire
 
 function newTabAfter(workspace: Workspace, anchor: WorkspaceLeaf): WorkspaceLeaf {
   const tabs = anchor.parent as unknown as LayoutItem;
-  return workspace.createLeafInParent(tabs as unknown as WorkspaceSplit, (tabs.children?.indexOf(anchor as unknown as LayoutItem) ?? -1) + 1);
+  return workspace.createLeafInParent(tabs as unknown as WorkspaceSplit, (tabs.children?.indexOf(anchor) ?? -1) + 1);
 }
 
 function recentLeafIn(workspace: Workspace, item: LayoutItem): WorkspaceLeaf | undefined {
@@ -27,7 +27,7 @@ function recentLeafIn(workspace: Workspace, item: LayoutItem): WorkspaceLeaf | u
   if (recent) return recent;
   const leaves: WorkspaceLeaf[] = [];
   workspace.iterateAllLeaves(leaf => {
-    for (let node: LayoutItem | null | undefined = leaf as unknown as LayoutItem; node; node = node.parent) if (node === item) { leaves.push(leaf); return; }
+    for (let node: LayoutItem | null | undefined = leaf; node; node = node.parent) if (node === item) { leaves.push(leaf); return; }
   });
   return leaves[0];
 }
@@ -43,7 +43,7 @@ function sideAnchor(workspace: Workspace, calendarLeaf: WorkspaceLeaf, side: Not
   const root = calendarLeaf.getRoot();
   if (root === workspace.leftSplit || root === workspace.rightSplit) {
     const towardMain: NoteSide = root === workspace.rightSplit ? 'left' : 'right';
-    return side === towardMain ? recentLeafIn(workspace, workspace.rootSplit as unknown as LayoutItem) : undefined;
+    return side === towardMain ? recentLeafIn(workspace, workspace.rootSplit) : undefined;
   }
   for (let node = calendarLeaf.parent as unknown as LayoutItem; node.parent; node = node.parent) {
     const { children, direction } = node.parent;

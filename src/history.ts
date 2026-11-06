@@ -113,7 +113,7 @@ export function safeSourceError(kind: SourceErrorKind, detail?: ICalErrorCode | 
     case "html": return `The calendar response is HTML, not a valid iCalendar feed.${suffix}`;
     case "non-ical": return `The calendar response is not an iCalendar feed.${suffix}`;
     case "parse": return `${typeof detail === "string" && Object.hasOwn(parserMessages, detail)
-      ? parserMessages[detail as ICalErrorCode] : parserMessages["invalid-feed"]}${suffix}`;
+      ? parserMessages[detail] : parserMessages["invalid-feed"]}${suffix}`;
     case "zone": return "The calendar uses an unknown time zone. Cached events remain available.";
     case "cache": return `The calendar cache could not be processed.${suffix}`;
     case "cache-missing": return `The calendar server returned no new feed, and no cached feed is available.${suffix}`;

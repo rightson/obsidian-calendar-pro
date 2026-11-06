@@ -102,7 +102,7 @@ export class MonthsView extends ItemView {
       return { height: this.renderMonth(container, first, context).getBoundingClientRect().height, gap: density.gap };
     });
     const { index, count } = chooseMonthDensity(container.clientHeight, cards, columns, this.settings.monthsMinimum);
-    const density = MONTH_DENSITIES[index]!;
+    const density = MONTH_DENSITIES[index];
     this.setDensity(container, density.name, density.gap);
     container.empty();
     for (let month = 0; month < count; month++) this.renderMonth(container, first.clone().add(month, 'months'), context);

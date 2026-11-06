@@ -338,7 +338,7 @@ export class EventNoteService {
     const dailyPaths = new Set(links.map(([, link]) => link.dailyPath));
     for (const event of events.values()) {
       if (!event?.start) continue;
-      try { dailyPaths.add(dailyNotePath(eventCalendarDate({ start: event.start, allDay: event.allDay } as CalendarEvent, settings.timeZone), this.app, settings)); }
+      try { dailyPaths.add(dailyNotePath(eventCalendarDate({ start: event.start, allDay: event.allDay }, settings.timeZone), this.app, settings)); }
       catch { /* an unreadable start has no Daily Note */ }
     }
     const dailies = new Map<string, string>();

@@ -347,6 +347,7 @@ export default class CalendarNotePlugin extends Plugin {
           if (diagnostic && diagnostic !== this.lastDiagnostics && !this.problemsModal) this.problemNotice();
           this.lastDiagnostics = diagnostic;
           this.problemsModal?.update();
+          this.settingTab?.refreshDiagnostics();
         } while (this.scanAgain && !this.disposed);
       } catch (error) { new Notice(error instanceof Error ? error.message : 'Could not scan Event Notes.'); }
     })().finally(() => { this.scanning = undefined; });
@@ -563,6 +564,9 @@ export default class CalendarNotePlugin extends Plugin {
     modal.open();
   }
   async retryRecovery(): Promise<void> {
+    // Recovery can restore settings from disk, which is the one way subscriptions change outside the tab.
+    const sourceIds = () => this.store.state.settings.sources.map(source => source.id).join();
+    const before = sourceIds();
     try {
       await this.store.recover();
       this.store.recoveryConflict = null;
@@ -570,5 +574,6 @@ export default class CalendarNotePlugin extends Plugin {
       await this.rescan();
       if (this.range) await this.refresh(false);
     } catch { this.showRecovery(); }
+    finally { if (sourceIds() !== before) this.settingTab?.update(); }
   }
 }

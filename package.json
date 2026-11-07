@@ -1,9 +1,11 @@
 {
   "name": "event-notes",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "private": true,
   "type": "module",
-  "engines": { "node": ">=22" },
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "typecheck": "tsc --noEmit",
     "build": "node esbuild.config.mjs",

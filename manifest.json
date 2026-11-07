@@ -1,7 +1,7 @@
 {
   "id": "event-notes",
   "name": "Event Notes",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "minAppVersion": "1.14.5",
   "description": "Keep events and project tasks as Markdown notes linked from your Daily Notes, and see them in a calendar and Gantt chart.",
   "author": "rightson",

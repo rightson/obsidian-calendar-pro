@@ -1,26 +1,30 @@
-.event-notes-view { height: 100%; padding: 0; overflow: hidden; }
+/* Shared top row: every Event Notes pane starts its first row --cn-top below the pane edge, --cn-bar-h tall,
+   and leaves --cn-bar-gap under it, so headings and toolbars line up side by side. */
+.event-notes-view, .cn-months-view, .cn-agenda-view { --cn-top: 16px; --cn-bar-h: 30px; --cn-bar-gap: 12px; }
+/* Obsidian pads .view-content with a more specific rule, so this needs the leaf class too. */
+.workspace-leaf-content .event-notes-view { height: 100%; padding: 0; overflow: hidden; }
 .cn-shell { position: relative; display: flex; height: 100%; min-height: 0; color: var(--text-normal); }
 .cn-hidden { display: none; }
-.cn-sidebar { width: var(--cn-sidebar-width, auto); box-sizing: border-box; display: flex; flex: 0 0 auto; flex-direction: column; min-width: 0; height: 100%; min-height: 0; padding: 18px 12px; background: var(--background-secondary); overflow: hidden; }
+.cn-sidebar { width: var(--cn-sidebar-width, auto); box-sizing: border-box; display: flex; flex: 0 0 auto; flex-direction: column; min-width: 0; height: 100%; min-height: 0; padding: var(--cn-top) 12px 18px; background: var(--background-secondary); overflow: hidden; }
 .cn-sidebar-resizer { position: relative; flex: 0 0 7px; height: 100%; cursor: col-resize; touch-action: none; background: var(--background-secondary); outline-offset: -2px; }
 .cn-sidebar-resizer::before { content: ''; position: absolute; top: 0; bottom: 0; left: 3px; width: 1px; background: var(--background-modifier-border); }
 .cn-sidebar-resizer:hover::before, .cn-sidebar-resizer:focus-visible::before { width: 2px; background: var(--interactive-accent); }
-.cn-sidebar-restore { display: none; position: absolute; z-index: 11; top: 18px; left: -16px; box-sizing: border-box; width: 26px; height: 30px; min-width: 0; padding: 4px; align-items: center; justify-content: center; }
+.cn-sidebar-restore { display: none; position: absolute; z-index: 11; top: var(--cn-top); left: -16px; box-sizing: border-box; width: 26px; height: var(--cn-bar-h); min-width: 0; padding: 4px; align-items: center; justify-content: center; }
 .cn-sidebar-restore svg { width: 16px; height: 16px; }
 .cn-shell.is-sidebar-collapsed .cn-sidebar-restore { display: inline-flex; }
 .cn-shell.is-sidebar-collapsed .cn-sidebar, .cn-shell.is-sidebar-collapsed .cn-sidebar-resizer { display: none; }
 .cn-shell.is-sidebar-overlay .cn-sidebar { position: absolute; z-index: 10; top: 0; left: 0; box-shadow: 4px 0 16px rgba(0,0,0,.2); }
 .cn-shell.is-sidebar-overlay .cn-sidebar-resizer { display: none; }
-.cn-main-restore { display: none; position: absolute; z-index: 11; top: 18px; right: -16px; box-sizing: border-box; width: 26px; height: 30px; min-width: 0; padding: 4px; align-items: center; justify-content: center; }
+.cn-main-restore { display: none; position: absolute; z-index: 11; top: var(--cn-top); right: -16px; box-sizing: border-box; width: 26px; height: var(--cn-bar-h); min-width: 0; padding: 4px; align-items: center; justify-content: center; }
 .cn-main-restore svg { width: 16px; height: 16px; }
 .cn-shell.is-main-collapsed .cn-main-restore { display: inline-flex; }
 .cn-shell.is-main-collapsed .cn-content, .cn-shell.is-main-collapsed .cn-sidebar-resizer { display: none; }
 .cn-shell.is-main-collapsed .cn-sidebar { flex: 1 1 auto; }
 .cn-shell.is-main-collapsed .cn-mini { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0 20px; align-content: start; }
-.cn-content { box-sizing: border-box; display: flex; flex-direction: column; min-width: 0; min-height: 0; height: 100%; flex: 1; padding: 16px 20px 18px; overflow: hidden; }
+.cn-content { box-sizing: border-box; display: flex; flex-direction: column; min-width: 0; min-height: 0; height: 100%; flex: 1; padding: var(--cn-top) 20px 18px; overflow: hidden; }
 .cn-history-tabs, .cn-history-actions, .cn-modal-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 /* Main toolbar: every control shares one height so the row lines up. Left is navigation, right is display then actions. */
-.cn-toolbar { --cn-bar-h: 30px; display: flex; flex: 0 0 auto; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-bottom: 12px; }
+.cn-toolbar { display: flex; flex: 0 0 auto; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-bottom: var(--cn-bar-gap); }
 .cn-navigation, .cn-controls, .cn-toolbar-group { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .cn-navigation { flex: 1 1 auto; gap: 12px; }
 .cn-controls { flex: 0 1 auto; flex-wrap: wrap; justify-content: flex-end; gap: 6px 14px; margin-left: auto; }
@@ -64,7 +68,7 @@
 .cn-subscription-failure[hidden] { display: none; }
 .cn-muted { color: var(--text-muted); font-size: var(--font-ui-small); }
 /* Sidebar heading: month title, then the same [‹ Today ›] control, then ×. */
-.cn-mini-heading { --cn-bar-h: 26px; display: flex; flex: 0 0 auto; align-items: center; gap: 6px; margin-bottom: 8px; font-weight: 600; }
+.cn-mini-heading { display: flex; flex: 0 0 auto; align-items: center; gap: 6px; height: var(--cn-bar-h); margin-bottom: var(--cn-bar-gap); font-weight: 600; }
 .cn-mini-heading button { box-sizing: border-box; height: var(--cn-bar-h); margin: 0; }
 .event-notes-view .cn-mini-heading .cn-today { padding: 0 8px; font-size: var(--font-ui-small); }
 .cn-mini-heading .cn-mini-collapse svg { width: 14px; height: 14px; }
@@ -204,7 +208,7 @@ body:not(.is-phone) .modal.cn-event-modal { width: min(1100px, 80vw); min-width:
 .cn-problem-references { margin: 0; padding-left: 16px; }
 .cn-problem-references code { font-size: var(--font-ui-smaller); }
 .cn-problem-note .cn-validation { margin: 0; font-size: var(--font-ui-small); }
-@media (max-width: 850px) { .cn-content { padding: 12px; } }
+@media (max-width: 850px) { .event-notes-view { --cn-top: 12px; } .cn-content { padding: var(--cn-top) 12px 12px; } }
 /* Add calendar subscription dialog. */
 .cn-subscription-modal .cn-subscription-url { width: min(360px, 100%); }
 .cn-subscription-actions { margin-top: 12px; }
@@ -219,8 +223,9 @@ body:not(.is-phone) .modal.cn-event-modal { width: min(1100px, 80vw); min-width:
 .cn-mini button.is-holiday-unshaded::after { content: ''; position: absolute; left: 50%; bottom: 3px; width: 1.4em; transform: translateX(-50%); border-bottom: 1px dotted currentColor; pointer-events: none; }
 
 /* Month calendar for a sidebar: whole months stacked to fill the panel height. */
-.cn-months-view { display: flex; flex-direction: column; height: 100%; min-height: 0; padding: 8px 10px; overflow: hidden; color: var(--text-normal); }
-.cn-months-heading { --cn-bar-h: 26px; display: flex; flex: 0 0 auto; align-items: center; gap: 6px; margin-bottom: 8px; font-weight: 600; }
+.cn-months-view { display: flex; flex-direction: column; height: 100%; min-height: 0; overflow: hidden; color: var(--text-normal); }
+.workspace-leaf-content .cn-months-view { padding: var(--cn-top) 10px 8px; }
+.cn-months-heading { display: flex; flex: 0 0 auto; align-items: center; gap: 6px; height: var(--cn-bar-h); margin-bottom: var(--cn-bar-gap); font-weight: 600; }
 .cn-months-heading button { box-sizing: border-box; height: var(--cn-bar-h); margin: 0; }
 .cn-months-view .cn-months-heading .cn-today { padding: 0 8px; font-size: var(--font-ui-small); }
 .cn-months-title { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .92rem; }
@@ -255,8 +260,8 @@ body:not(.is-phone) .modal.cn-event-modal { width: min(1100px, 80vw); min-width:
 /* Events sidebar: a week strip over one day's timeline, or a list of the coming days. */
 .cn-agenda-view { --cn-agenda-gutter: 44px; display: flex; flex-direction: column; height: 100%; overflow: hidden; }
 .workspace-leaf-content .cn-agenda-view { padding: 0; }
-.cn-agenda-header { flex: 0 0 auto; display: flex; flex-direction: column; gap: 8px; padding: 10px 12px 6px; }
-.cn-agenda-heading { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.cn-agenda-header { flex: 0 0 auto; display: flex; flex-direction: column; gap: 8px; padding: var(--cn-top) 12px 6px; }
+.cn-agenda-heading { display: flex; align-items: center; gap: 6px; min-width: 0; height: var(--cn-bar-h); }
 .cn-agenda-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 1.15em; font-weight: 700; }
 .cn-agenda-week-number { width: auto; padding: 2px 6px; color: var(--text-muted); font-size: var(--font-ui-smaller); font-weight: 600; }
 .cn-agenda-week-number:hover, .cn-agenda-week-number:focus-visible { color: var(--interactive-accent); }

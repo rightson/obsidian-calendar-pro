@@ -1,4 +1,4 @@
-import { ItemView, Keymap, TFile, type WorkspaceLeaf } from 'obsidian';
+import { ItemView, Keymap, TFile, setIcon, type WorkspaceLeaf } from 'obsidian';
 import type moment from 'moment-timezone';
 import { dateAt, firstWeekday, weekInfo } from './date';
 import { resolveWeekRules } from './settings';
@@ -36,10 +36,14 @@ export class MonthsView extends ItemView {
     root.empty();
     root.addClass('cn-months-view');
     const heading = root.createDiv({ cls: 'cn-months-heading' });
-    const prev = heading.createEl('button', { text: '‹', attr: { type: 'button', 'aria-label': 'Previous month' } });
+    // Same order as the calendar: the title, then one [‹ Today ›] control.
     this.headingTitleEl = heading.createSpan({ cls: 'cn-months-title' });
-    const today = heading.createEl('button', { text: 'Today', attr: { type: 'button', 'aria-label': 'Show this month first' } });
-    const next = heading.createEl('button', { text: '›', attr: { type: 'button', 'aria-label': 'Next month' } });
+    const stepper = heading.createDiv({ cls: 'cn-stepper is-small', attr: { role: 'group', 'aria-label': 'Month navigation' } });
+    const prev = stepper.createEl('button', { cls: 'cn-icon-button', attr: { type: 'button', 'aria-label': 'Previous month' } });
+    setIcon(prev, 'chevron-left');
+    const today = stepper.createEl('button', { cls: 'cn-today', text: 'Today', attr: { type: 'button', 'aria-label': 'Show this month first' } });
+    const next = stepper.createEl('button', { cls: 'cn-icon-button', attr: { type: 'button', 'aria-label': 'Next month' } });
+    setIcon(next, 'chevron-right');
     this.monthsEl = root.createDiv({ cls: 'cn-months' });
     this.firstMonth = this.thisMonth();
     prev.addEventListener('click', () => this.shift(-1));

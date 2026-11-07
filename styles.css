@@ -86,6 +86,13 @@
 .cn-mini .is-today { outline: 1px solid var(--interactive-accent); font-weight: 700; }
 .cn-mini .is-selected { background: var(--interactive-accent); color: var(--text-on-accent); }
 .cn-mini .is-outside { opacity: .55; }
+/* The main calendar's visible days, as one band. */
+.cn-mini button.is-in-view:not(.is-selected) { background: color-mix(in srgb, var(--interactive-accent) 12%, transparent); }
+/* With both panels open the main toolbar owns Today and the week: the sidebar keeps only month paging
+   (‹ › beside its title), and the Week chip gives way to the sidebar's week numbers and shaded week. */
+.cn-shell:not(.is-sidebar-collapsed):not(.is-main-collapsed) .cn-mini-heading .cn-today,
+.cn-shell:not(.is-sidebar-collapsed):not(.is-main-collapsed) .cn-toolbar .cn-view-week { display: none; }
+.cn-shell:not(.is-sidebar-collapsed):not(.is-main-collapsed) .cn-mini-heading .cn-stepper { border-color: transparent; background: transparent; box-shadow: none; }
 .cn-list-dates { margin-bottom: 12px; }
 .cn-list-dates.is-hidden { display: none; }
 .cn-list-date-buttons { display: flex; gap: 6px; flex-wrap: wrap; }

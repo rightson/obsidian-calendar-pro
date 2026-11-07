@@ -464,6 +464,12 @@ export class CalendarNoteView extends ItemView {
     for (let month = 2; month < rendered; month++) this.renderMiniMonth(first.clone().add(month, 'month'));
     this.miniEl.scrollTop = previousScroll;
   }
+  /** The days a week-sized main view shows, shaded in the mini calendar so the main toolbar need not repeat them. */
+  private miniViewRange(): { start: string; end: string } | undefined {
+    const view = this.calendar?.view;
+    if (!view || !['timeGridWeek', 'timeGridDay', 'customDays', 'listWeek'].includes(view.type)) return undefined;
+    return { start: isoDay(view.currentStart, this.settings.timeZone), end: isoDay(view.currentEnd, this.settings.timeZone) };
+  }
   private renderMiniMonth(monthDate: moment.Moment, showHeading = true): HTMLElement {
     const card = this.miniEl!.createDiv({ cls: 'cn-mini-month' });
     if (showHeading) card.createEl('h3', { text: monthDate.format('MMMM YYYY') });
@@ -476,6 +482,7 @@ export class CalendarNoteView extends ItemView {
       const th = head.createEl('th', { text: weekday.format('ddd') }); th.title = weekday.format('dddd');
     }
     const start = monthDate.clone().subtract((monthDate.day() - firstDay + 7) % 7, 'days');
+    const inView = this.miniViewRange();
     for (let row = 0; row < 6; row++) {
       const tr = table.createEl('tr');
       const weekDay = start.clone().add(row * 7, 'days').format('YYYY-MM-DD');
@@ -492,6 +499,7 @@ export class CalendarNoteView extends ItemView {
         }, placement ? `Open Daily Note for ${day}` : `Navigate to ${day}`);
         if (day === this.today()) button.addClass('is-today');
         if (day === this.selectedDay) button.addClass('is-selected');
+        if (inView && day >= inView.start && day < inView.end) button.addClass('is-in-view');
         const holiday = this.holidays.get(day);
         if (holiday) {
           button.addClass('is-holiday');

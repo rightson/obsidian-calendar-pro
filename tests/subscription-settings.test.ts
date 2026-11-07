@@ -4,7 +4,7 @@ import { DEFAULT_SETTINGS } from '../src/settings';
 import { freshState } from '../src/state';
 import { safeSourceError, emptySourceCache } from '../src/history';
 import { SubscriptionService } from '../src/subscriptions';
-import { SettingsUpdateQueue, patchSubscription, subscriptionFailureMessage, subscriptionStatus } from '../src/subscription-settings';
+import { SUBSCRIPTION_COLORS, SettingsUpdateQueue, newSubscription, newSubscriptionUrlError, nextSubscriptionColor, patchSubscription, subscriptionFailureMessage, subscriptionStatus } from '../src/subscription-settings';
 import type { CalendarStore } from '../src/store';
 import type { SourceSyncService } from '../src/sync';
 import type { CalendarSource, PluginSettings } from '../src/types';
@@ -76,4 +76,27 @@ test('status distinguishes inactive, disabled, pending, parse failure, and displ
   cache.lastSuccess = '2026-10-22T12:00:00Z';
   assert.match(subscriptionStatus(configured, cache, 1), /1 event in the current view/);
   assert.equal(subscriptionFailureMessage({ ...settings(), sources: [configured] }, { feed: cache }), undefined);
+});
+
+test('a new subscription from the calendar needs a fresh HTTPS or webcal URL', () => {
+  const existing: CalendarSource[] = [{ ...source, name: 'Work', url }];
+  assert.equal(newSubscriptionUrlError('  ', existing), 'Enter the calendar\'s subscription URL.');
+  assert.equal(newSubscriptionUrlError('not a url', existing), 'Enter a valid HTTPS or webcal subscription URL.');
+  assert.equal(newSubscriptionUrlError('http://example.test/a.ics', existing), 'Use an HTTPS or webcal subscription URL.');
+  assert.equal(newSubscriptionUrlError(` ${url} `, existing), 'This calendar is already subscribed as “Work”.');
+  assert.equal(newSubscriptionUrlError('webcal://example.test/other.ics', existing), undefined);
+});
+
+test('a new subscription is enabled, named after its host when unnamed, and holiday-typed only when asked', () => {
+  const holidays = newSubscription('h', { name: '  ', url: ' webcal://p01.example.test/holidays.ics ', color: '#3fa36b', kind: 'holidays' });
+  assert.deepEqual(holidays, { id: 'h', name: 'p01.example.test', url: 'webcal://p01.example.test/holidays.ics', color: '#3fa36b', enabled: true, kind: 'holidays' });
+  const events = newSubscription('e', { name: ' Team ', url, color: '#5885d8', kind: 'events' });
+  assert.deepEqual(events, { id: 'e', name: 'Team', url, color: '#5885d8', enabled: true });
+});
+
+test('new subscriptions get the first palette color no calendar uses yet', () => {
+  assert.equal(nextSubscriptionColor([]), SUBSCRIPTION_COLORS[0]);
+  assert.equal(nextSubscriptionColor([{ ...source, color: '#5885D8' }]), SUBSCRIPTION_COLORS[1]);
+  const all = SUBSCRIPTION_COLORS.map((color, index) => ({ ...source, id: String(index), color }));
+  assert.equal(nextSubscriptionColor(all), SUBSCRIPTION_COLORS[all.length % SUBSCRIPTION_COLORS.length]);
 });

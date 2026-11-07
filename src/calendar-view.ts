@@ -44,6 +44,7 @@ export class CalendarNoteView extends ItemView {
   private periodEl?: HTMLElement;
   private viewWeekEl?: HTMLButtonElement;
   private historyEl?: HTMLButtonElement;
+  private historyBadge?: HTMLElement;
   private problemsEl?: HTMLButtonElement;
   private subscriptionFailureEl?: HTMLElement;
   private listDatesEl?: HTMLElement;
@@ -88,17 +89,19 @@ export class CalendarNoteView extends ItemView {
     const sidebar = shell.createDiv({ cls: 'cn-sidebar' });
     this.sidebarEl = sidebar;
     const miniHeading = sidebar.createDiv({ cls: 'cn-mini-heading' });
-    const miniPrev = miniHeading.createEl('button', { text: '‹', attr: { 'aria-label': 'Previous month' } });
-    this.miniNavTitle = miniHeading.createSpan();
-    const miniToday = miniHeading.createEl('button', { text: 'Today', attr: { 'aria-label': 'Navigate calendar to today' } });
-    const miniNext = miniHeading.createEl('button', { text: '›', attr: { 'aria-label': 'Next month' } });
-    const miniCollapse = miniHeading.createEl('button', { text: '×', attr: { 'aria-label': 'Collapse calendar sidebar', title: 'Collapse calendar sidebar' } });
+    this.miniNavTitle = miniHeading.createSpan({ cls: 'cn-mini-title' });
+    const miniStepper = miniHeading.createDiv({ cls: 'cn-stepper is-small', attr: { role: 'group', 'aria-label': 'Mini calendar navigation' } });
+    const stepMini = (months: number) => {
+      this.miniMonth = dateAt(this.miniMonth!, this.settings.timeZone).add(months, 'month').format('YYYY-MM-DD');
+      this.miniEl!.scrollTop = 0;
+      this.renderMini();
+    };
+    this.iconButton(miniStepper, 'chevron-left', 'Previous month', () => stepMini(-1));
+    this.button(miniStepper, 'Today', () => this.navigateToday(), 'Navigate calendar to today').addClass('cn-today');
+    this.iconButton(miniStepper, 'chevron-right', 'Next month', () => stepMini(1));
+    this.iconButton(miniHeading, 'x', 'Collapse calendar sidebar', () => void this.togglePanel('sidebar')).addClass('cn-mini-collapse');
     this.miniEl = sidebar.createDiv({ cls: 'cn-mini' });
     this.miniMonth = dateAt(this.today(), this.settings.timeZone).startOf('month').format('YYYY-MM-DD');
-    miniPrev.addEventListener('click', () => { this.miniMonth = dateAt(this.miniMonth!, this.settings.timeZone).subtract(1, 'month').format('YYYY-MM-DD'); this.miniEl!.scrollTop = 0; this.renderMini(); });
-    miniNext.addEventListener('click', () => { this.miniMonth = dateAt(this.miniMonth!, this.settings.timeZone).add(1, 'month').format('YYYY-MM-DD'); this.miniEl!.scrollTop = 0; this.renderMini(); });
-    miniToday.addEventListener('click', () => this.navigateToday());
-    miniCollapse.addEventListener('click', () => void this.togglePanel('sidebar'));
     this.miniResizeObserver = new ResizeObserver(() => {
       if (this.miniResizeFrame) window.cancelAnimationFrame(this.miniResizeFrame);
       this.miniResizeFrame = window.requestAnimationFrame(() => { this.miniResizeFrame = undefined; this.renderMini(); });
@@ -127,34 +130,43 @@ export class CalendarNoteView extends ItemView {
     this.shellResizeObserver = new ResizeObserver(() => this.applySidebarLayout());
     this.shellResizeObserver.observe(shell);
     const content = shell.createDiv({ cls: 'cn-content' });
+    // Left: where you are ([‹ Today ›], the period, its week). Right: how it is shown, then actions.
     const toolbar = content.createDiv({ cls: 'cn-toolbar' });
     const navigation = toolbar.createDiv({ cls: 'cn-navigation' });
-    this.button(navigation, 'Today', () => this.navigateToday());
-    this.button(navigation, '‹', () => this.calendar?.prev(), 'Previous period');
-    this.button(navigation, '›', () => this.calendar?.next(), 'Next period');
+    const stepper = navigation.createDiv({ cls: 'cn-stepper', attr: { role: 'group', 'aria-label': 'Calendar navigation' } });
+    this.iconButton(stepper, 'chevron-left', 'Previous period', () => this.calendar?.prev());
+    this.button(stepper, 'Today', () => this.navigateToday(), 'Go to today').addClass('cn-today');
+    this.iconButton(stepper, 'chevron-right', 'Next period', () => this.calendar?.next());
+    this.periodEl = navigation.createEl('strong', { cls: 'cn-period' });
     this.viewWeekEl = this.button(navigation, 'Week', () => {
       const day = this.calendar ? isoDay(this.calendar.view.currentStart, this.settings.timeZone) : this.today();
       void this.openWeek(day);
     });
     this.viewWeekEl.addClass('cn-view-week');
-    this.periodEl = navigation.createEl('strong', { cls: 'cn-period' });
     const controls = toolbar.createDiv({ cls: 'cn-controls' });
-    this.workdaysToggle = this.button(controls, 'Workdays', () => void this.toggleWorkdays(), 'Show workdays only in the main calendar');
-    this.workdaysToggle.addClass('cn-workdays-toggle');
-    const views = controls.createEl('select', { attr: { 'aria-label': 'Calendar view' } });
-    for (const [id, label] of CALENDAR_VIEWS) views.createEl('option', { value: id, text: label });
-    views.value = this.viewType;
-    views.addEventListener('change', () => { this.viewType = views.value; this.calendar?.changeView(views.value, this.selectedDay); });
-    this.button(controls, 'New event', () => this.newEvent());
-    this.button(controls, 'Refresh', () => void this.plugin.refresh(true));
-    this.historyEl = this.button(controls, 'History', () => this.plugin.showHistory());
     this.problemsEl = this.button(controls, 'Note problems', () => this.plugin.showProblems(), 'Review Event Note problems');
     this.problemsEl.addClass('cn-problems-button');
     this.problemsEl.hidden = true;
-    this.mainCollapse = this.button(controls, '', () => void this.togglePanel('main'), 'Hide main calendar');
+    const display = controls.createDiv({ cls: 'cn-toolbar-group' });
+    this.workdaysToggle = this.button(display, 'Workdays', () => void this.toggleWorkdays(), 'Show workdays only in the main calendar');
+    this.workdaysToggle.addClass('cn-workdays-toggle');
+    const views = display.createEl('select', { cls: 'dropdown cn-view-select', attr: { 'aria-label': 'Calendar view' } });
+    for (const [id, label] of CALENDAR_VIEWS) views.createEl('option', { value: id, text: label });
+    views.value = this.viewType;
+    views.addEventListener('change', () => { this.viewType = views.value; this.calendar?.changeView(views.value, this.selectedDay); });
+    const actions = controls.createDiv({ cls: 'cn-toolbar-group' });
+    const refresh = this.iconButton(actions, 'refresh-cw', 'Refresh', () => void this.refreshNow(refresh));
+    this.historyEl = this.iconButton(actions, 'history', 'Change history', () => this.plugin.showHistory());
+    this.historyEl.addClass('cn-history-button');
+    this.historyBadge = this.historyEl.createSpan({ cls: 'cn-badge' });
+    this.historyBadge.hidden = true;
+    const newEvent = this.button(actions, '', () => this.newEvent(), 'New event');
+    newEvent.addClass('mod-cta', 'cn-new-event');
+    setIcon(newEvent.createSpan({ cls: 'cn-button-icon' }), 'plus');
+    newEvent.createSpan({ cls: 'cn-button-label', text: 'New event' });
+    const more = this.iconButton(actions, 'more-horizontal', 'Calendars and settings', () => this.showMoreMenu(more));
+    this.mainCollapse = this.iconButton(actions, 'panel-right-close', 'Hide main calendar', () => void this.togglePanel('main'));
     this.mainCollapse.addClass('cn-main-collapse');
-    this.mainCollapse.title = 'Hide main calendar';
-    setIcon(this.mainCollapse, 'panel-right-close');
     this.subscriptionFailureEl = content.createDiv({ cls: 'cn-subscription-failure', attr: { role: 'status', 'aria-live': 'polite' } });
     this.listDatesEl = content.createDiv({ cls: 'cn-list-dates' });
     const grid = content.createDiv({ cls: 'cn-calendar' });
@@ -388,6 +400,34 @@ export class CalendarNoteView extends ItemView {
     button.addEventListener('click', click);
     return button;
   }
+  private iconButton(parent: HTMLElement, icon: string, label: string, click: () => void): HTMLButtonElement {
+    const button = parent.createEl('button', { cls: 'cn-icon-button', attr: { type: 'button', 'aria-label': label } });
+    setIcon(button, icon);
+    button.addEventListener('click', click);
+    return button;
+  }
+  private async refreshNow(button: HTMLButtonElement): Promise<void> {
+    if (button.hasClass('is-busy')) return;
+    button.addClass('is-busy');
+    try { await this.plugin.refresh(true); }
+    finally { button.removeClass('is-busy'); }
+  }
+  /** Subscriptions live here so they can be added and switched without leaving the calendar. */
+  private showMoreMenu(anchor: HTMLElement): void {
+    const menu = new Menu();
+    menu.addItem(item => item.setTitle('Add calendar subscription…').setIcon('calendar-plus').onClick(() => this.plugin.showAddSubscription()));
+    const sources = this.settings.sources;
+    if (sources.length) menu.addSeparator();
+    for (const source of sources) {
+      const usable = !!source.url.trim();
+      menu.addItem(item => item.setTitle(usable ? source.name : `${source.name} (no URL)`).setChecked(usable && source.enabled)
+        .setDisabled(!usable).onClick(() => void this.plugin.setSubscriptionEnabled(source.id, !source.enabled)));
+    }
+    menu.addSeparator();
+    menu.addItem(item => item.setTitle('Event Notes settings…').setIcon('settings').onClick(() => this.plugin.openSettings()));
+    const rect = anchor.getBoundingClientRect();
+    menu.showAtPosition({ x: rect.right, y: rect.bottom + 4, left: true }, anchor.doc);
+  }
   private weekButton(parent: HTMLElement, day: string, label: string): void {
     const week = weekInfo(day, resolveWeekRules(this.app, this.settings), this.settings.timeZone);
     const button = this.button(parent, label, () => void this.openWeek(week.start),
@@ -554,7 +594,10 @@ export class CalendarNoteView extends ItemView {
   }
   refresh(): void {
     if (!this.calendar) return;
-    this.historyEl?.setText(this.plugin.reviewCount ? `History (${this.plugin.reviewCount})` : 'History');
+    const reviews = this.plugin.reviewCount;
+    if (this.historyBadge) { this.historyBadge.hidden = !reviews; this.historyBadge.setText(reviews > 99 ? '99+' : String(reviews)); }
+    this.historyEl?.setAttribute('aria-label', reviews ? `Change history: ${reviews} ${reviews === 1 ? 'change needs' : 'changes need'} review` : 'Change history');
+    this.historyEl?.toggleClass('has-reviews', !!reviews);
     if (this.problemsEl) {
       this.problemsEl.hidden = !this.plugin.problemCount;
       this.problemsEl.setText(`⚠ ${this.plugin.problemCount} note ${this.plugin.problemCount === 1 ? 'problem' : 'problems'}`);

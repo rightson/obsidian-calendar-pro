@@ -1,39 +1,78 @@
-.event-notes-view { height: 100%; padding: 0; overflow: hidden; }
+/* Shared top row: every Event Notes pane starts its first row --cn-top below the pane edge, --cn-bar-h tall,
+   and leaves --cn-bar-gap under it, so headings and toolbars line up side by side. */
+.event-notes-view, .cn-months-view, .cn-agenda-view { --cn-top: 16px; --cn-bar-h: 30px; --cn-bar-gap: 12px; }
+/* Obsidian pads .view-content with a more specific rule, so this needs the leaf class too. */
+.workspace-leaf-content .event-notes-view { height: 100%; padding: 0; overflow: hidden; }
 .cn-shell { position: relative; display: flex; height: 100%; min-height: 0; color: var(--text-normal); }
 .cn-hidden { display: none; }
-.cn-sidebar { width: var(--cn-sidebar-width, auto); box-sizing: border-box; display: flex; flex: 0 0 auto; flex-direction: column; min-width: 0; height: 100%; min-height: 0; padding: 18px 12px; background: var(--background-secondary); overflow: hidden; }
+.cn-sidebar { width: var(--cn-sidebar-width, auto); box-sizing: border-box; display: flex; flex: 0 0 auto; flex-direction: column; min-width: 0; height: 100%; min-height: 0; padding: var(--cn-top) 12px 18px; background: var(--background-secondary); overflow: hidden; }
 .cn-sidebar-resizer { position: relative; flex: 0 0 7px; height: 100%; cursor: col-resize; touch-action: none; background: var(--background-secondary); outline-offset: -2px; }
 .cn-sidebar-resizer::before { content: ''; position: absolute; top: 0; bottom: 0; left: 3px; width: 1px; background: var(--background-modifier-border); }
 .cn-sidebar-resizer:hover::before, .cn-sidebar-resizer:focus-visible::before { width: 2px; background: var(--interactive-accent); }
-.cn-sidebar-restore { display: none; position: absolute; z-index: 11; top: 18px; left: -16px; box-sizing: border-box; width: 26px; height: 30px; min-width: 0; padding: 4px; align-items: center; justify-content: center; }
+.cn-sidebar-restore { display: none; position: absolute; z-index: 11; top: var(--cn-top); left: -16px; box-sizing: border-box; width: 26px; height: var(--cn-bar-h); min-width: 0; padding: 4px; align-items: center; justify-content: center; }
 .cn-sidebar-restore svg { width: 16px; height: 16px; }
 .cn-shell.is-sidebar-collapsed .cn-sidebar-restore { display: inline-flex; }
 .cn-shell.is-sidebar-collapsed .cn-sidebar, .cn-shell.is-sidebar-collapsed .cn-sidebar-resizer { display: none; }
 .cn-shell.is-sidebar-overlay .cn-sidebar { position: absolute; z-index: 10; top: 0; left: 0; box-shadow: 4px 0 16px rgba(0,0,0,.2); }
 .cn-shell.is-sidebar-overlay .cn-sidebar-resizer { display: none; }
-.cn-main-restore { display: none; position: absolute; z-index: 11; top: 18px; right: -16px; box-sizing: border-box; width: 26px; height: 30px; min-width: 0; padding: 4px; align-items: center; justify-content: center; }
-.cn-main-restore svg, .cn-main-collapse svg { width: 16px; height: 16px; }
-.cn-main-collapse { display: inline-flex; align-items: center; justify-content: center; }
+.cn-main-restore { display: none; position: absolute; z-index: 11; top: var(--cn-top); right: -16px; box-sizing: border-box; width: 26px; height: var(--cn-bar-h); min-width: 0; padding: 4px; align-items: center; justify-content: center; }
+.cn-main-restore svg { width: 16px; height: 16px; }
 .cn-shell.is-main-collapsed .cn-main-restore { display: inline-flex; }
 .cn-shell.is-main-collapsed .cn-content, .cn-shell.is-main-collapsed .cn-sidebar-resizer { display: none; }
 .cn-shell.is-main-collapsed .cn-sidebar { flex: 1 1 auto; }
 .cn-shell.is-main-collapsed .cn-mini { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0 20px; align-content: start; }
-.cn-content { box-sizing: border-box; display: flex; flex-direction: column; min-width: 0; min-height: 0; height: 100%; flex: 1; padding: 16px 20px 18px; overflow: hidden; }
-.cn-toolbar, .cn-navigation, .cn-controls, .cn-mini-heading, .cn-history-tabs, .cn-history-actions, .cn-modal-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.cn-toolbar { justify-content: space-between; margin-bottom: 12px; }
-.cn-navigation { min-width: 0; }
-.cn-period { padding-left: 8px; font-size: 1.12rem; white-space: normal; }
-.cn-controls select { min-width: 115px; }
-.cn-view-week { white-space: nowrap; }
-.cn-workdays-toggle { white-space: nowrap; }
-.cn-workdays-toggle.is-active { color: var(--interactive-accent); }
+.cn-content { box-sizing: border-box; display: flex; flex-direction: column; min-width: 0; min-height: 0; height: 100%; flex: 1; padding: var(--cn-top) 20px 18px; overflow: hidden; }
+.cn-history-tabs, .cn-history-actions, .cn-modal-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+/* Main toolbar: every control shares one height so the row lines up. Left is navigation, right is display then actions. */
+.cn-toolbar { display: flex; flex: 0 0 auto; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; margin-bottom: var(--cn-bar-gap); }
+.cn-navigation, .cn-controls, .cn-toolbar-group { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.cn-navigation { flex: 1 1 auto; gap: 12px; }
+.cn-controls { flex: 0 1 auto; flex-wrap: wrap; justify-content: flex-end; gap: 6px 14px; margin-left: auto; }
+.cn-toolbar button, .cn-toolbar select { box-sizing: border-box; height: var(--cn-bar-h); margin: 0; font-size: var(--font-ui-small); }
+.cn-toolbar button { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 0 12px; white-space: nowrap; }
+.cn-toolbar button svg, .cn-mini-heading button svg, .cn-months-heading button svg { width: 16px; height: 16px; }
+.cn-toolbar select { width: auto; min-width: 104px; padding-top: 0; padding-bottom: 0; }
+:is(.event-notes-view, .cn-months-view) .cn-icon-button { box-sizing: border-box; display: inline-flex; align-items: center; justify-content: center; width: var(--cn-bar-h, 26px); min-width: 0; padding: 0; border: 0; box-shadow: none; background: transparent; color: var(--icon-color, var(--text-muted)); }
+:is(.event-notes-view, .cn-months-view) .cn-icon-button:is(:hover, :focus-visible) { background: var(--background-modifier-hover); color: var(--icon-color-hover, var(--text-normal)); }
+/* [‹ Today ›] as one segmented control. */
+.cn-stepper { display: inline-flex; flex: 0 0 auto; align-items: stretch; border: 1px solid var(--background-modifier-border); border-radius: var(--radius-m, 8px); background: var(--interactive-normal); box-shadow: var(--input-shadow, none); overflow: hidden; }
+:is(.event-notes-view, .cn-months-view) .cn-stepper button { height: calc(var(--cn-bar-h) - 2px); border: 0; border-radius: 0; box-shadow: none; background: transparent; color: var(--text-normal); }
+:is(.event-notes-view, .cn-months-view) .cn-stepper button:is(:hover, :focus-visible) { background: var(--background-modifier-hover); }
+:is(.event-notes-view, .cn-months-view) .cn-stepper .cn-icon-button { width: calc(var(--cn-bar-h) - 4px); }
+:is(.event-notes-view, .cn-months-view) .cn-stepper .cn-today { padding: 0 10px; border-left: 1px solid var(--background-modifier-border); border-right: 1px solid var(--background-modifier-border); font-weight: var(--font-semibold, 600); }
+.cn-toolbar .cn-hidden { display: none; }
+.cn-period { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 1.25rem; font-weight: 700; line-height: var(--cn-bar-h); }
+.event-notes-view .cn-toolbar .cn-view-week { flex: 0 0 auto; height: 22px; padding: 0 8px; border: 0; border-radius: 999px; box-shadow: none; background: var(--background-modifier-hover); color: var(--text-muted); font-size: var(--font-ui-smaller); font-weight: 600; }
+.event-notes-view .cn-toolbar .cn-view-week:hover, .event-notes-view .cn-toolbar .cn-view-week:focus-visible { color: var(--text-accent); background: color-mix(in srgb, var(--interactive-accent) 14%, transparent); }
+.cn-workdays-toggle.is-active { background: color-mix(in srgb, var(--interactive-accent) 16%, var(--interactive-normal)); color: var(--text-accent); }
+.cn-new-event .cn-button-icon { display: inline-flex; margin-left: -2px; }
+.cn-new-event { font-weight: var(--font-semibold, 600); }
+.event-notes-view .cn-history-button { position: relative; overflow: visible; }
+.cn-badge { position: absolute; top: -3px; right: -4px; box-sizing: border-box; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--interactive-accent); color: var(--text-on-accent); font-size: 10px; font-weight: 700; line-height: 16px; text-align: center; pointer-events: none; }
+.cn-badge[hidden] { display: none; }
+.cn-icon-button.is-busy svg { animation: cn-spin .9s linear infinite; }
+@keyframes cn-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .cn-icon-button.is-busy svg { animation: none; opacity: .5; } }
+/* Narrow panes: New event keeps only its + icon, and the right group moves to its own row. */
+.cn-content { container-type: inline-size; }
+@container (max-width: 720px) {
+  .cn-controls { width: 100%; justify-content: space-between; }
+}
+@container (max-width: 480px) {
+  .cn-new-event .cn-button-label { display: none; }
+  .event-notes-view .cn-toolbar .cn-new-event { width: var(--cn-bar-h); padding: 0; }
+  .cn-new-event .cn-button-icon { margin-left: 0; }
+  .cn-view-week { display: none; }
+}
 .cn-subscription-failure { margin: 0 0 10px; padding: 7px 10px; border-radius: 6px; background: var(--background-modifier-error); color: var(--text-error); font-size: var(--font-ui-small); overflow-wrap: anywhere; }
 .cn-subscription-failure[hidden] { display: none; }
 .cn-muted { color: var(--text-muted); font-size: var(--font-ui-small); }
-.cn-mini-heading { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto 26px 26px; gap: 4px; flex: 0 0 auto; margin-bottom: 8px; align-items: center; font-weight: 600; }
-.cn-mini-heading button { box-sizing: border-box; width: 26px; min-width: 0; padding: 3px 0; }
-.cn-mini-heading button[aria-label="Navigate calendar to today"] { width: auto; padding: 4px 6px; font-size: var(--font-ui-small); }
-.cn-mini-heading span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .92rem; }
+/* Sidebar heading: month title, then the same [‹ Today ›] control, then ×. */
+.cn-mini-heading { display: flex; flex: 0 0 auto; align-items: center; gap: 6px; height: var(--cn-bar-h); margin-bottom: var(--cn-bar-gap); font-weight: 600; }
+.cn-mini-heading button { box-sizing: border-box; height: var(--cn-bar-h); margin: 0; }
+.event-notes-view .cn-mini-heading .cn-today { padding: 0 8px; font-size: var(--font-ui-small); }
+.cn-mini-heading .cn-mini-collapse svg { width: 14px; height: 14px; }
+.cn-mini-title { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .92rem; }
 .cn-mini { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-right: 3px; }
 .cn-mini-month { margin-bottom: 16px; }
 .cn-mini-month h3 { margin: 0 0 6px; font-size: var(--font-ui-small); font-weight: 600; }
@@ -47,6 +86,13 @@
 .cn-mini .is-today { outline: 1px solid var(--interactive-accent); font-weight: 700; }
 .cn-mini .is-selected { background: var(--interactive-accent); color: var(--text-on-accent); }
 .cn-mini .is-outside { opacity: .55; }
+/* The main calendar's visible days, as one band. */
+.cn-mini button.is-in-view:not(.is-selected) { background: color-mix(in srgb, var(--interactive-accent) 12%, transparent); }
+/* With both panels open the main toolbar owns Today and the week: the sidebar keeps only month paging
+   (‹ › beside its title), and the Week chip gives way to the sidebar's week numbers and shaded week. */
+.cn-shell:not(.is-sidebar-collapsed):not(.is-main-collapsed) .cn-mini-heading .cn-today,
+.cn-shell:not(.is-sidebar-collapsed):not(.is-main-collapsed) .cn-toolbar .cn-view-week { display: none; }
+.cn-shell:not(.is-sidebar-collapsed):not(.is-main-collapsed) .cn-mini-heading .cn-stepper { border-color: transparent; background: transparent; box-shadow: none; }
 .cn-list-dates { margin-bottom: 12px; }
 .cn-list-dates.is-hidden { display: none; }
 .cn-list-date-buttons { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -169,8 +215,12 @@ body:not(.is-phone) .modal.cn-event-modal { width: min(1100px, 80vw); min-width:
 .cn-problem-references { margin: 0; padding-left: 16px; }
 .cn-problem-references code { font-size: var(--font-ui-smaller); }
 .cn-problem-note .cn-validation { margin: 0; font-size: var(--font-ui-small); }
-@media (max-width: 850px) { .cn-content { padding: 12px; } .cn-toolbar { align-items: flex-start; } }
-@media (max-width: 550px) { .cn-controls, .cn-navigation { width: 100%; } .cn-controls > * { flex: 1; } .cn-calendar .fc-toolbar-title { font-size: 1rem; } }
+@media (max-width: 850px) { .event-notes-view { --cn-top: 12px; } .cn-content { padding: var(--cn-top) 12px 12px; } }
+/* Add calendar subscription dialog. */
+.cn-subscription-modal .cn-subscription-url { width: min(360px, 100%); }
+.cn-subscription-actions { margin-top: 12px; }
+.cn-subscription-actions .cn-link-button { margin-right: auto; padding: 0; border: 0; box-shadow: none; background: transparent; color: var(--text-accent); font-size: var(--font-ui-small); }
+.cn-subscription-actions .cn-link-button:hover, .cn-subscription-actions .cn-link-button:focus-visible { text-decoration: underline; background: transparent; }
 
 /* Holiday calendars: date backgrounds in the main and mini calendars. */
 .event-notes-view .fc .cn-holiday-background { opacity: .35; }
@@ -180,11 +230,12 @@ body:not(.is-phone) .modal.cn-event-modal { width: min(1100px, 80vw); min-width:
 .cn-mini button.is-holiday-unshaded::after { content: ''; position: absolute; left: 50%; bottom: 3px; width: 1.4em; transform: translateX(-50%); border-bottom: 1px dotted currentColor; pointer-events: none; }
 
 /* Month calendar for a sidebar: whole months stacked to fill the panel height. */
-.cn-months-view { display: flex; flex-direction: column; height: 100%; min-height: 0; padding: 8px 10px; overflow: hidden; color: var(--text-normal); }
-.cn-months-heading { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto 26px; gap: 4px; flex: 0 0 auto; align-items: center; margin-bottom: 8px; font-weight: 600; }
-.cn-months-heading button { box-sizing: border-box; min-width: 0; padding: 3px 0; }
-.cn-months-heading button[aria-label="Show this month first"] { padding: 4px 6px; font-size: var(--font-ui-small); }
-.cn-months-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .92rem; }
+.cn-months-view { display: flex; flex-direction: column; height: 100%; min-height: 0; overflow: hidden; color: var(--text-normal); }
+.workspace-leaf-content .cn-months-view { padding: var(--cn-top) 10px 8px; }
+.cn-months-heading { display: flex; flex: 0 0 auto; align-items: center; gap: 6px; height: var(--cn-bar-h); margin-bottom: var(--cn-bar-gap); font-weight: 600; }
+.cn-months-heading button { box-sizing: border-box; height: var(--cn-bar-h); margin: 0; }
+.cn-months-view .cn-months-heading .cn-today { padding: 0 8px; font-size: var(--font-ui-small); }
+.cn-months-title { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .92rem; }
 .cn-months { flex: 1 1 auto; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(var(--cn-months-columns, 1), minmax(0, 1fr)); gap: var(--cn-months-gap, 14px) 20px; align-content: start; }
 .cn-months { --cn-months-row: 30px; --cn-months-day-size: var(--font-ui-small); --cn-months-head-size: .68rem; --cn-months-dot: 4px; }
 .cn-months.is-compact { --cn-months-row: 22px; --cn-months-day-size: .75rem; --cn-months-head-size: .62rem; --cn-months-dot: 3px; }
@@ -216,8 +267,8 @@ body:not(.is-phone) .modal.cn-event-modal { width: min(1100px, 80vw); min-width:
 /* Events sidebar: a week strip over one day's timeline, or a list of the coming days. */
 .cn-agenda-view { --cn-agenda-gutter: 44px; display: flex; flex-direction: column; height: 100%; overflow: hidden; }
 .workspace-leaf-content .cn-agenda-view { padding: 0; }
-.cn-agenda-header { flex: 0 0 auto; display: flex; flex-direction: column; gap: 8px; padding: 10px 12px 6px; }
-.cn-agenda-heading { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.cn-agenda-header { flex: 0 0 auto; display: flex; flex-direction: column; gap: 8px; padding: var(--cn-top) 12px 6px; }
+.cn-agenda-heading { display: flex; align-items: center; gap: 6px; min-width: 0; height: var(--cn-bar-h); }
 .cn-agenda-title { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 1.15em; font-weight: 700; }
 .cn-agenda-week-number { width: auto; padding: 2px 6px; color: var(--text-muted); font-size: var(--font-ui-smaller); font-weight: 600; }
 .cn-agenda-week-number:hover, .cn-agenda-week-number:focus-visible { color: var(--interactive-accent); }

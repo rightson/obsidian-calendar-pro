@@ -8,7 +8,8 @@ import { calendarOpenModeForClick, ensureSidebarView, leafBelowFileExplorer, ope
 import { EventPropertiesController } from './event-properties';
 import { ChangeHistoryModal, EventModal } from './modals';
 import { EventNoteProblemsModal } from './problems-modal';
-import { CalendarNoteSettingTab } from './settings-tab';
+import { CalendarNoteSettingTab, validatePluginSettings } from './settings-tab';
+import { AddSubscriptionModal } from './subscription-modal';
 import { DEFAULT_SETTINGS } from './settings';
 import { normalizeState } from './state';
 import { CalendarStore, RecoveryConflict } from './store';
@@ -17,7 +18,7 @@ import { migrateLegacyData } from './migrate';
 import { EventNoteService, type ChooseNote } from './events';
 import { SubscriptionService } from './subscriptions';
 import { SourceSyncService } from './sync';
-import { SettingsUpdateQueue } from './subscription-settings';
+import { SettingsUpdateQueue, newSubscription, patchSubscription } from './subscription-settings';
 import { historyForReview, type ChangeHistoryEntry } from './history';
 import type { CalendarEvent, Interval, PluginSettings } from './types';
 import type { CalendarRange } from './ical';
@@ -152,6 +153,7 @@ export default class CalendarNotePlugin extends Plugin {
     } });
     this.addCommand({ id: 'refresh', name: 'Refresh calendars', callback: () => void this.refresh(true) });
     this.addCommand({ id: 'change-history', name: 'Show change history', callback: () => this.showHistory() });
+    this.addCommand({ id: 'add-subscription', name: 'Add calendar subscription', callback: () => this.showAddSubscription() });
     this.addCommand({ id: 'retry-recovery', name: 'Retry pending recovery', callback: () => void this.retryRecovery() });
     this.addCommand({ id: 'review-event-note-problems', name: 'Review Event Note problems', callback: () => this.showProblems() });
     this.settingTab = new CalendarNoteSettingTab(this.app, this);
@@ -502,6 +504,36 @@ export default class CalendarNotePlugin extends Plugin {
 
   updateSettings(change: (settings: PluginSettings) => void, validate?: (settings: PluginSettings) => void): Promise<void> {
     return this.settingsUpdates.update(change, validate);
+  }
+
+  /** Settings changed outside the settings tab; redraw it so it doesn't show stale subscriptions. */
+  private async updateSettingsFromView(change: (settings: PluginSettings) => void): Promise<void> {
+    await this.updateSettings(change, next => { validatePluginSettings(this.app, next); });
+    this.settingTab?.update();
+  }
+
+  showAddSubscription(): void {
+    new AddSubscriptionModal(this.app, () => this.store.state.settings.sources, async input => {
+      const source = newSubscription(crypto.randomUUID(), input);
+      await this.updateSettingsFromView(next => { next.sources.push(source); });
+      new Notice(`Event Notes: subscribed to “${source.name}”. Its events appear after the first refresh.`);
+    }, () => this.openSettings()).open();
+  }
+
+  async setSubscriptionEnabled(id: string, enabled: boolean): Promise<void> {
+    try { await this.updateSettingsFromView(next => { patchSubscription(next, id, { enabled }); }); }
+    catch (error) { new Notice(error instanceof Error ? error.message : 'Could not update the subscription.'); }
+  }
+
+  /** Obsidian's settings window, on this plugin's tab. The API is undocumented, so it is feature-checked. */
+  openSettings(): void {
+    const setting = (this.app as unknown as { setting?: { open?: () => void; openTabById?: (id: string) => unknown } }).setting;
+    if (typeof setting?.open !== 'function' || typeof setting.openTabById !== 'function') {
+      new Notice('Open Settings → Event Notes to manage subscriptions.');
+      return;
+    }
+    setting.open();
+    setting.openTabById(this.manifest.id);
   }
 
   saveSettings(settings: PluginSettings): Promise<void> {

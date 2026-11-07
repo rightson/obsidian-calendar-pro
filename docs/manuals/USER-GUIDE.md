@@ -2,7 +2,7 @@
 
 ## Get started
 
-Open the calendar from the ribbon icon or the command palette. Create a local event from **New event** or an empty calendar slot. The event is saved as a Markdown Event Note and linked under `## Events` in the Daily Note for its start date. Click a date to open its Daily Note; the sidebar's week number opens that Weekly Note. Settings → **Clicking** customizes what a click does; see [Click behavior](#click-behavior). Right-click the calendar to open a menu: **New event** creates one at that time, and an **Edit** entry appears for each event at that time (or on that day in Month view), so overlapping events can each be reached.
+Open the calendar from the ribbon icon or the command palette. The toolbar reads left to right: **‹ Today ›** and the period shown, with its week number (click it for the Weekly Note); then **Workdays** and the view picker; then the refresh and change-history icons (a badge counts changes waiting for review), **+ New event**, and **⋯** for calendar subscriptions and settings. With the sidebar open as well, the toolbar's Today and week chip are not repeated there: the sidebar keeps only **‹ ›** to page its months, shades the days the main calendar shows, and its week numbers open Weekly Notes. Create a local event from **New event** or an empty calendar slot. The event is saved as a Markdown Event Note and linked under `## Events` in the Daily Note for its start date. Click a date to open its Daily Note; the sidebar's week number opens that Weekly Note. Settings → **Clicking** customizes what a click does; see [Click behavior](#click-behavior). Right-click the calendar to open a menu: **New event** creates one at that time, and an **Edit** entry appears for each event at that time (or on that day in Month view), so overlapping events can each be reached.
 
 ## Event details
 
@@ -58,7 +58,7 @@ Today's timeline keeps the current time in the middle of the sidebar and follows
 
 ## Subscriptions
 
-Subscriptions are optional. Add an HTTPS or `webcal://` feed in settings to display read-only calendar events. Local events work without a subscription. Imported calendar data is cached for use in the calendar, and event changes can be reviewed in History. Removing the plugin or a feed does not delete Vault notes.
+Subscriptions are optional. Add an HTTPS or `webcal://` (iCal) feed to display read-only calendar events: in the calendar, click **⋯** → **Add calendar subscription…** (or run **Add calendar subscription** from the command palette), paste the feed URL, and optionally give it a name, color, and type. The same **⋯** menu lists your subscriptions with a check mark to turn each on or off, and **Event Notes settings…** opens the plugin's settings for the remaining options, such as removing a feed or holiday backgrounds. Local events work without a subscription. Imported calendar data is cached for use in the calendar, and event changes can be reviewed in History. Removing the plugin or a feed does not delete Vault notes.
 
 ## Holiday calendars
 
